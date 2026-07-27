@@ -16,6 +16,11 @@ const CHECKPOINT_SCENE := preload("res://scenes/tracks/components/RaceCheckpoint
 @export var reference_vehicle: VehicleDimensions
 @export_range(1, 8, 1) var lane_capacity := 5
 @export_range(0.0, 2.0, 0.05) var safety_margin_per_side := 0.75
+@export_range(1.0, 4.0, 0.25) var grass_runoff_in_car_widths := 2.5
+
+@export_group("Surfaces")
+@export var asphalt_surface: SurfaceProfile
+@export var grass_surface: SurfaceProfile
 
 @export_group("Classic Palette")
 @export var road_color := Color("5a5d62")
@@ -27,8 +32,14 @@ const CHECKPOINT_SCENE := preload("res://scenes/tracks/components/RaceCheckpoint
 @onready var track_shadow: Line2D = $TrackShadow
 @onready var curb_underlay: Line2D = $CurbUnderlay
 @onready var road_surface: Line2D = $RoadSurface
+@onready var road_inner_surface: Line2D = $RoadInnerSurface
 @onready var curb_segments: Node2D = $CurbSegments
 @onready var center_markings: Node2D = $CenterMarkings
+@onready var outer_barrier_shadow: Line2D = $OuterBarrierShadow
+@onready var inner_barrier_shadow: Line2D = $InnerBarrierShadow
+@onready var outer_barrier: Line2D = $OuterBarrier
+@onready var inner_barrier: Line2D = $InnerBarrier
+@onready var barrier_red_segments: Node2D = $BarrierRedSegments
 @onready var start_grid: Node2D = $StartGrid
 @onready var boundaries: StaticBody2D = $Boundaries
 @onready var checkpoint_container: Node2D = $Checkpoints
@@ -36,6 +47,7 @@ const CHECKPOINT_SCENE := preload("res://scenes/tracks/components/RaceCheckpoint
 
 var _sampled_centerline := PackedVector2Array()
 var _track_width := 0.0
+var _grass_runoff_width := 0.0
 var _local_bounds := Rect2()
 var _checkpoints: Array[RaceCheckpoint] = []
 var _debug_checkpoints_visible := false
@@ -53,20 +65,26 @@ func _ready() -> void:
 		reference_vehicle.body_width
 		* (float(lane_capacity) + safety_margin_per_side * 2.0)
 	)
+	_grass_runoff_width = reference_vehicle.body_width * grass_runoff_in_car_widths
 
 	_sampled_centerline = _sample_closed_curve(centerline_points, smoothing_iterations)
 	_configure_racing_line()
-	var edges := _build_track_edges(_sampled_centerline)
+	var edges := _build_track_edges(_sampled_centerline, _track_width * 0.5)
 	var outer_points: PackedVector2Array = edges[0]
 	var inner_points: PackedVector2Array = edges[1]
-	_local_bounds = _calculate_bounds(outer_points).grow(20.0)
+	var barrier_edges := _build_track_edges(
+		_sampled_centerline,
+		_track_width * 0.5 + _grass_runoff_width
+	)
+	var outer_barrier_points: PackedVector2Array = barrier_edges[0]
+	var inner_barrier_points: PackedVector2Array = barrier_edges[1]
+	_local_bounds = _calculate_bounds(outer_barrier_points).grow(20.0)
 
 	_configure_visuals(outer_points, inner_points)
-	_create_curb_segments(outer_points)
-	_create_curb_segments(inner_points)
+	_configure_barriers(outer_barrier_points, inner_barrier_points)
 	_create_center_markings(_sampled_centerline)
-	_create_collision_boundary(outer_points, "Outer")
-	_create_collision_boundary(inner_points, "Inner")
+	_create_collision_boundary(outer_barrier_points, "Outer")
+	_create_collision_boundary(inner_barrier_points, "Inner")
 	_create_start_grid(_sampled_centerline)
 	_create_checkpoints()
 	get_tree().node_added.connect(_on_tree_node_added)
@@ -79,6 +97,10 @@ func get_start_transform() -> Transform2D:
 
 func get_track_width() -> float:
 	return _track_width
+
+
+func get_grass_runoff_width() -> float:
+	return _grass_runoff_width
 
 
 func get_local_bounds() -> Rect2:
@@ -101,6 +123,17 @@ func get_racing_line_points() -> PackedVector2Array:
 
 func get_closest_racing_line_index(world_position: Vector2) -> int:
 	return _find_closest_sample(to_local(world_position))
+
+
+func get_surface_at_world_position(world_position: Vector2) -> SurfaceProfile:
+	var distance_to_center := _distance_to_centerline(to_local(world_position))
+	if distance_to_center <= _track_width * 0.5:
+		return asphalt_surface
+	return grass_surface
+
+
+func is_world_position_on_asphalt(world_position: Vector2) -> bool:
+	return _distance_to_centerline(to_local(world_position)) <= _track_width * 0.5
 
 
 func get_start_grid_transforms(car_count: int) -> Array[Transform2D]:
@@ -167,16 +200,18 @@ func _configure_racing_line() -> void:
 	racing_line.curve = curve
 
 
-func _build_track_edges(points: PackedVector2Array) -> Array[PackedVector2Array]:
-	var half_width := _track_width * 0.5
+func _build_track_edges(
+	points: PackedVector2Array,
+	offset_distance: float
+) -> Array[PackedVector2Array]:
 	var expanded_edges := Geometry2D.offset_polygon(
 		points,
-		half_width,
+		offset_distance,
 		Geometry2D.JOIN_ROUND
 	)
 	var contracted_edges := Geometry2D.offset_polygon(
 		points,
-		-half_width,
+		-offset_distance,
 		Geometry2D.JOIN_ROUND
 	)
 
@@ -227,7 +262,7 @@ func _configure_visuals(
 	inner_points: PackedVector2Array
 ) -> void:
 	track_shadow.points = _sampled_centerline
-	track_shadow.width = _track_width + 26.0
+	track_shadow.width = _track_width + 30.0
 	track_shadow.default_color = track_shadow_color
 
 	curb_underlay.points = _sampled_centerline
@@ -236,30 +271,48 @@ func _configure_visuals(
 
 	road_surface.points = _sampled_centerline
 	road_surface.width = _track_width
-	road_surface.default_color = road_color
+	road_surface.default_color = road_color.darkened(0.08)
+
+	road_inner_surface.points = _sampled_centerline
+	road_inner_surface.width = _track_width - 10.0
+	road_inner_surface.default_color = road_color.lightened(0.025)
 
 
-func _create_curb_segments(points: PackedVector2Array) -> void:
-	const SAMPLE_SPACING := 12.0
+func _configure_barriers(
+	outer_points: PackedVector2Array,
+	inner_points: PackedVector2Array
+) -> void:
+	outer_barrier_shadow.points = outer_points
+	inner_barrier_shadow.points = inner_points
+	outer_barrier.points = outer_points
+	inner_barrier.points = inner_points
+	_create_barrier_red_segments(outer_points)
+	_create_barrier_red_segments(inner_points)
+
+
+func _create_barrier_red_segments(points: PackedVector2Array) -> void:
+	const SAMPLE_SPACING := 16.0
 	const RED_STEPS := 3
-	const WHITE_STEPS := 3
-	const CURB_WIDTH := 14.0
+	const GAP_STEPS := 2
+	const MARK_WIDTH := 9.0
 	var sampled_points := _resample_closed_path(points, SAMPLE_SPACING)
-	var pattern_size := RED_STEPS + WHITE_STEPS
+	var pattern_size := RED_STEPS + GAP_STEPS
 
 	for start_index in range(0, sampled_points.size(), pattern_size):
-		var curb := Line2D.new()
-		curb.width = CURB_WIDTH
-		curb.default_color = curb_red_color
-		curb.joint_mode = Line2D.LINE_JOINT_ROUND
-		curb.antialiased = true
+		var mark := Line2D.new()
+		mark.width = MARK_WIDTH
+		mark.default_color = curb_red_color
+		mark.joint_mode = Line2D.LINE_JOINT_ROUND
+		mark.begin_cap_mode = Line2D.LINE_CAP_BOX
+		mark.end_cap_mode = Line2D.LINE_CAP_BOX
+		mark.antialiased = true
 
 		for offset in range(RED_STEPS + 1):
-			curb.add_point(
+			mark.add_point(
 				sampled_points[(start_index + offset) % sampled_points.size()]
 			)
 
-		curb_segments.add_child(curb)
+		barrier_red_segments.add_child(mark)
 
 
 func _resample_closed_path(
@@ -335,7 +388,7 @@ func _create_checkpoints() -> void:
 			index,
 			markers.size(),
 			_get_centerline_transform(local_anchor),
-			_track_width,
+			_track_width + _grass_runoff_width * 2.0,
 			reference_vehicle.body_length * 1.5
 		)
 		checkpoint.set_debug_visible(_debug_checkpoints_visible)
@@ -412,3 +465,22 @@ func _find_closest_sample(target: Vector2) -> int:
 			closest_index = index
 
 	return closest_index
+
+
+func _distance_to_centerline(target: Vector2) -> float:
+	var closest_squared := INF
+	for index in range(_sampled_centerline.size()):
+		var segment_start := _sampled_centerline[index]
+		var segment_end := _sampled_centerline[(index + 1) % _sampled_centerline.size()]
+		var segment := segment_end - segment_start
+		var segment_length_squared := segment.length_squared()
+		var interpolation := 0.0
+		if segment_length_squared > 0.0:
+			interpolation = clampf(
+				(target - segment_start).dot(segment) / segment_length_squared,
+				0.0,
+				1.0
+			)
+		var nearest := segment_start + segment * interpolation
+		closest_squared = minf(closest_squared, target.distance_squared_to(nearest))
+	return sqrt(closest_squared)

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SurfaceProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/surfaces/surface_profile.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+surface_id = &"asphalt"
+acceleration_multiplier = 1.0
+maximum_speed_multiplier = 1.0
+coast_deceleration_multiplier = 1.0
+steering_rate_multiplier = 1.0
+steering_response_multiplier = 1.0
+emits_dust = false
+dust_color = Color(0.776, 0.663, 0.42, 0.5)
