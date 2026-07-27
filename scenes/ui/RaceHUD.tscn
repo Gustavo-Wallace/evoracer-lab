@@ -1,0 +1,70 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/race_hud.gd" id="1_hud"]
+[ext_resource type="Theme" path="res://resources/themes/hud_theme.tres" id="2_theme"]
+
+[node name="HUD" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_hud")
+
+[node name="Layout" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="TitlePanel" type="PanelContainer" parent="Layout"]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 24.0
+offset_right = 257.0
+offset_bottom = 68.0
+
+[node name="TitleLabel" type="Label" parent="Layout/TitlePanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.33, 0.88, 0.96, 1)
+theme_override_font_sizes/font_size = 20
+text = "EVO RACER LAB"
+horizontal_alignment = 1
+
+[node name="SpeedPanel" type="PanelContainer" parent="Layout"]
+layout_mode = 0
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -188.0
+offset_top = 24.0
+offset_right = -28.0
+offset_bottom = 68.0
+grow_horizontal = 0
+
+[node name="SpeedLabel" type="Label" parent="Layout/SpeedPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.91, 0.96, 0.98, 1)
+theme_override_font_sizes/font_size = 20
+text = "000 km/h"
+horizontal_alignment = 1
+
+[node name="ModePanel" type="PanelContainer" parent="Layout"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -109.0
+offset_top = -58.0
+offset_right = 109.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="ModeLabel" type="Label" parent="Layout/ModePanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.72, 0.78, 1)
+theme_override_font_sizes/font_size = 15
+text = "Manual Test Mode"
+horizontal_alignment = 1
