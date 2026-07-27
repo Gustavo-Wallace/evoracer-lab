@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/car_controller.gd" id="1_car"]
 [ext_resource type="Resource" path="res://resources/vehicles/default_car_dimensions.tres" id="2_dimensions"]
+[ext_resource type="Script" path="res://scripts/race/race_progress_tracker.gd" id="3_progress"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_car"]
 size = Vector2(36, 50)
@@ -54,3 +55,6 @@ color = Color(0.95, 0.17, 0.18, 1)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_car")
+
+[node name="RaceProgress" type="Node" parent="."]
+script = ExtResource("3_progress")

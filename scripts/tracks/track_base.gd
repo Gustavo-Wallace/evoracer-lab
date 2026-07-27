@@ -1,6 +1,8 @@
 class_name RaceTrackBase
 extends Node2D
 
+const CHECKPOINT_SCENE := preload("res://scenes/tracks/components/RaceCheckpoint.tscn")
+
 @export_group("Identity")
 @export var track_id: StringName = &"track_base"
 @export var display_name := "TRACK BASE"
@@ -29,10 +31,13 @@ extends Node2D
 @onready var center_markings: Node2D = $CenterMarkings
 @onready var start_grid: Node2D = $StartGrid
 @onready var boundaries: StaticBody2D = $Boundaries
+@onready var checkpoint_container: Node2D = $Checkpoints
 
 var _sampled_centerline := PackedVector2Array()
 var _track_width := 0.0
 var _local_bounds := Rect2()
+var _checkpoints: Array[RaceCheckpoint] = []
+var _debug_checkpoints_visible := false
 
 
 func _ready() -> void:
@@ -61,18 +66,13 @@ func _ready() -> void:
 	_create_collision_boundary(outer_points, "Outer")
 	_create_collision_boundary(inner_points, "Inner")
 	_create_start_grid(_sampled_centerline)
+	_create_checkpoints()
+	get_tree().node_added.connect(_on_tree_node_added)
+	call_deferred("_register_existing_cars")
 
 
 func get_start_transform() -> Transform2D:
-	if _sampled_centerline.is_empty():
-		return Transform2D.IDENTITY
-
-	var start_index := _find_closest_sample(start_line_anchor)
-	var previous := _sampled_centerline[posmod(start_index - 1, _sampled_centerline.size())]
-	var following := _sampled_centerline[(start_index + 1) % _sampled_centerline.size()]
-	var tangent := (following - previous).normalized()
-	var car_rotation := tangent.angle() + PI * 0.5
-	return Transform2D(car_rotation, _sampled_centerline[start_index])
+	return _get_centerline_transform(start_line_anchor)
 
 
 func get_track_width() -> float:
@@ -81,6 +81,28 @@ func get_track_width() -> float:
 
 func get_local_bounds() -> Rect2:
 	return _local_bounds
+
+
+func get_checkpoint_count() -> int:
+	return _checkpoints.size()
+
+
+func register_car(car: Node2D) -> void:
+	if not car.is_in_group("race_cars") or _checkpoints.is_empty():
+		return
+
+	for child in car.get_children():
+		if child is RaceProgressTracker and not child.is_configured():
+			child.configure(_checkpoints.size(), _checkpoints[0].global_transform)
+			return
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("toggle_checkpoints") and not event.is_echo():
+		_debug_checkpoints_visible = not _debug_checkpoints_visible
+		for checkpoint in _checkpoints:
+			checkpoint.set_debug_visible(_debug_checkpoints_visible)
+		get_viewport().set_input_as_handled()
 
 
 func _sample_closed_curve(
@@ -246,6 +268,63 @@ func _create_collision_boundary(points: PackedVector2Array, prefix: String) -> v
 		collision.name = "%sSegment%03d" % [prefix, index]
 		collision.shape = segment
 		boundaries.add_child(collision)
+
+
+func _create_checkpoints() -> void:
+	var markers: Array[Marker2D] = []
+	for child in get_children():
+		if child is Marker2D and child.is_in_group("track_checkpoint_markers"):
+			markers.append(child)
+	markers.sort_custom(_sort_checkpoint_markers)
+
+	if markers.size() < 2:
+		push_error("Track '%s' needs a finish marker and at least one checkpoint." % track_id)
+		return
+
+	for index in range(markers.size()):
+		var marker := markers[index]
+
+		var checkpoint := CHECKPOINT_SCENE.instantiate() as RaceCheckpoint
+		checkpoint_container.add_child(checkpoint)
+		var local_anchor := to_local(marker.global_position)
+		checkpoint.configure(
+			index,
+			markers.size(),
+			_get_centerline_transform(local_anchor),
+			_track_width,
+			reference_vehicle.body_length * 1.5
+		)
+		checkpoint.set_debug_visible(_debug_checkpoints_visible)
+		_checkpoints.append(checkpoint)
+
+
+func _sort_checkpoint_markers(first: Marker2D, second: Marker2D) -> bool:
+	return String(first.name) < String(second.name)
+
+
+func _get_centerline_transform(anchor: Vector2) -> Transform2D:
+	if _sampled_centerline.is_empty():
+		return Transform2D.IDENTITY
+
+	var sample_index := _find_closest_sample(anchor)
+	var previous := _sampled_centerline[
+		posmod(sample_index - 1, _sampled_centerline.size())
+	]
+	var following := _sampled_centerline[(sample_index + 1) % _sampled_centerline.size()]
+	var tangent := (following - previous).normalized()
+	var vehicle_rotation := tangent.angle() + PI * 0.5
+	return Transform2D(vehicle_rotation, _sampled_centerline[sample_index])
+
+
+func _register_existing_cars() -> void:
+	for car in get_tree().get_nodes_in_group("race_cars"):
+		if car is Node2D:
+			register_car(car)
+
+
+func _on_tree_node_added(node: Node) -> void:
+	if node.is_in_group("race_cars"):
+		call_deferred("register_car", node)
 
 
 func _create_start_grid(points: PackedVector2Array) -> void:

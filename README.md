@@ -8,5 +8,7 @@ Simulação de corrida 2D vista de cima criada no Godot 4.7. A base atual oferec
 2. Use **W/S** para acelerar, frear ou engatar a ré.
 3. Use **A/D** para esterçar.
 4. Pressione **C** para alternar entre câmera de acompanhamento e visão geral.
+5. Pressione **P** para mostrar ou esconder checkpoints de depuração.
+6. Pressione **R** para retornar ao último checkpoint válido.
 
 Nesta etapa não há IA, sensores, checkpoints, população ou algoritmo genético.

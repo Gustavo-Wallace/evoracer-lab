@@ -2,7 +2,7 @@
 
 [ext_resource type="PackedScene" path="res://scenes/tracks/base/TrackBase.tscn" id="1_base"]
 
-[node name="GreenwoodGP" unique_id=113596237 instance=ExtResource("1_base")]
+[node name="GreenwoodGP" unique_id=453890029 instance=ExtResource("1_base")]
 track_id = &"greenwood_gp"
 display_name = "GREENWOOD GP"
 centerline_points = PackedVector2Array(650, 2050, 1200, 2050, 1900, 2050, 2600, 2050, 3050, 2040, 3300, 1950, 3500, 1750, 3560, 1450, 3500, 1200, 3300, 1050, 3050, 920, 3250, 730, 3000, 520, 2750, 340, 2500, 360, 2380, 520, 2100, 560, 1650, 560, 1200, 560, 850, 560, 650, 560, 520, 690, 360, 560, 230, 720, 160, 1000, 190, 1400, 300, 1750, 480, 1970)
@@ -13,3 +13,41 @@ track_shadow_color = Color(0.18, 0.39, 0.18, 1)
 curb_base_color = Color(0.96, 0.93, 0.84, 1)
 curb_red_color = Color(0.82, 0.21, 0.16, 1)
 center_marking_color = Color(0.96, 0.91, 0.7, 0.38)
+
+[node name="CheckpointLayout" type="Node2D" parent="." index="6" unique_id=707474655]
+
+[node name="Checkpoint00Finish" type="Marker2D" parent="." index="9" unique_id=867492874 groups=["track_checkpoint_markers"]]
+position = Vector2(1000, 2050)
+
+[node name="Checkpoint01" type="Marker2D" parent="." index="10" unique_id=390992781 groups=["track_checkpoint_markers"]]
+position = Vector2(2300, 2050)
+
+[node name="Checkpoint02" type="Marker2D" parent="." index="11" unique_id=2128528757 groups=["track_checkpoint_markers"]]
+position = Vector2(3500, 1600)
+
+[node name="Checkpoint03" type="Marker2D" parent="." index="12" unique_id=9516664 groups=["track_checkpoint_markers"]]
+position = Vector2(3420, 1120)
+
+[node name="Checkpoint04" type="Marker2D" parent="." index="13" unique_id=1172510916 groups=["track_checkpoint_markers"]]
+position = Vector2(3140, 840)
+
+[node name="Checkpoint05" type="Marker2D" parent="." index="14" unique_id=333434026 groups=["track_checkpoint_markers"]]
+position = Vector2(2980, 500)
+
+[node name="Checkpoint06" type="Marker2D" parent="." index="15" unique_id=739208177 groups=["track_checkpoint_markers"]]
+position = Vector2(2400, 540)
+
+[node name="Checkpoint07" type="Marker2D" parent="." index="16" unique_id=808314693 groups=["track_checkpoint_markers"]]
+position = Vector2(1600, 560)
+
+[node name="Checkpoint08" type="Marker2D" parent="." index="17" unique_id=492103181 groups=["track_checkpoint_markers"]]
+position = Vector2(700, 560)
+
+[node name="Checkpoint09" type="Marker2D" parent="." index="18" unique_id=1042461456 groups=["track_checkpoint_markers"]]
+position = Vector2(350, 650)
+
+[node name="Checkpoint10" type="Marker2D" parent="." index="19" unique_id=2090101611 groups=["track_checkpoint_markers"]]
+position = Vector2(180, 1200)
+
+[node name="Checkpoint11" type="Marker2D" parent="." index="20" unique_id=1033268344 groups=["track_checkpoint_markers"]]
+position = Vector2(390, 1880)

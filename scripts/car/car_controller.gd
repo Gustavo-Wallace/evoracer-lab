@@ -56,6 +56,13 @@ func get_speed_kmh() -> float:
 	return absf(current_speed) * pixels_per_second_to_kmh
 
 
+func reset_motion() -> void:
+	current_speed = 0.0
+	current_steer_rate = 0.0
+	velocity = Vector2.ZERO
+	speed_changed.emit(0.0)
+
+
 func _update_speed(delta: float) -> void:
 	var throttle := Input.get_axis("brake_reverse", "accelerate")
 	var target_speed := 0.0
