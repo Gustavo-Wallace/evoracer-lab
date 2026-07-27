@@ -32,6 +32,7 @@ const CHECKPOINT_SCENE := preload("res://scenes/tracks/components/RaceCheckpoint
 @onready var start_grid: Node2D = $StartGrid
 @onready var boundaries: StaticBody2D = $Boundaries
 @onready var checkpoint_container: Node2D = $Checkpoints
+@onready var racing_line: Path2D = $RacingLine
 
 var _sampled_centerline := PackedVector2Array()
 var _track_width := 0.0
@@ -54,6 +55,7 @@ func _ready() -> void:
 	)
 
 	_sampled_centerline = _sample_closed_curve(centerline_points, smoothing_iterations)
+	_configure_racing_line()
 	var edges := _build_track_edges(_sampled_centerline)
 	var outer_points: PackedVector2Array = edges[0]
 	var inner_points: PackedVector2Array = edges[1]
@@ -85,6 +87,39 @@ func get_local_bounds() -> Rect2:
 
 func get_checkpoint_count() -> int:
 	return _checkpoints.size()
+
+
+func get_checkpoint_global_position(index: int) -> Vector2:
+	if index < 0 or index >= _checkpoints.size():
+		return global_position
+	return _checkpoints[index].global_position
+
+
+func get_racing_line_points() -> PackedVector2Array:
+	return _sampled_centerline
+
+
+func get_closest_racing_line_index(world_position: Vector2) -> int:
+	return _find_closest_sample(to_local(world_position))
+
+
+func get_start_grid_transforms(car_count: int) -> Array[Transform2D]:
+	var transforms: Array[Transform2D] = []
+	var start_transform := get_start_transform()
+	var lateral_spacing := reference_vehicle.body_width * 1.75
+	var row_spacing := reference_vehicle.body_length * 1.75
+	var column_offsets := [0.0, -1.0, 1.0]
+
+	for index in range(car_count):
+		var row := floori(float(index) / column_offsets.size())
+		var column := index % column_offsets.size()
+		var local_offset := Vector2(
+			column_offsets[column] * lateral_spacing,
+			reference_vehicle.body_length * 1.4 + row * row_spacing
+		)
+		transforms.append(start_transform * Transform2D(0.0, local_offset))
+
+	return transforms
 
 
 func register_car(car: Node2D) -> void:
@@ -121,6 +156,15 @@ func _sample_closed_curve(
 		samples = refined
 
 	return samples
+
+
+func _configure_racing_line() -> void:
+	var curve := Curve2D.new()
+	for point in _sampled_centerline:
+		curve.add_point(point)
+	if not _sampled_centerline.is_empty():
+		curve.add_point(_sampled_centerline[0])
+	racing_line.curve = curve
 
 
 func _build_track_edges(points: PackedVector2Array) -> Array[PackedVector2Array]:

@@ -6,6 +6,7 @@ extends CanvasLayer
 @onready var lap_label: Label = $Layout/TrackPanel/TrackContent/RaceData/LapLabel
 @onready var checkpoint_label: Label = $Layout/TrackPanel/TrackContent/RaceData/CheckpointLabel
 @onready var lap_time_label: Label = $Layout/TrackPanel/TrackContent/RaceData/LapTimeLabel
+@onready var spectator_label: Label = $Layout/SpectatorPanel/SpectatorLabel
 
 
 func set_speed(speed_kmh: float) -> void:
@@ -33,3 +34,17 @@ func set_lap_timing(lap_time: float, _time_since_last_progress: float) -> void:
 	var minutes := floori(lap_time / 60.0)
 	var seconds := fmod(lap_time, 60.0)
 	lap_time_label.text = "TIME %02d:%05.2f" % [minutes, seconds]
+
+
+func set_spectator_info(
+	mode_name: String,
+	vehicle_id: String,
+	race_position: int,
+	car_count: int
+) -> void:
+	spectator_label.text = "%s | %s | P%02d/%02d" % [
+		mode_name,
+		vehicle_id,
+		race_position,
+		car_count,
+	]

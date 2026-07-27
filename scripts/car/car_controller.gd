@@ -22,11 +22,16 @@ signal speed_changed(speed_kmh: float)
 
 @export_category("Vehicle")
 @export var dimensions: VehicleDimensions
+@export var vehicle_id := "CAR-01"
+@export var manual_control_enabled := true
 
 var current_speed := 0.0
 var current_steer_rate := 0.0
+var _requested_throttle := 0.0
+var _requested_steering := 0.0
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
+@onready var body_visual: Polygon2D = $Body
 
 
 func _ready() -> void:
@@ -40,8 +45,14 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	_update_speed(delta)
-	_update_steering(delta)
+	var throttle := _requested_throttle
+	var steering := _requested_steering
+	if manual_control_enabled:
+		throttle = Input.get_axis("brake_reverse", "accelerate")
+		steering = Input.get_axis("steer_left", "steer_right")
+
+	_update_speed(throttle, delta)
+	_update_steering(steering, delta)
 
 	velocity = Vector2.UP.rotated(rotation) * current_speed
 	move_and_slide()
@@ -56,6 +67,16 @@ func get_speed_kmh() -> float:
 	return absf(current_speed) * pixels_per_second_to_kmh
 
 
+func set_control_inputs(throttle: float, steering: float) -> void:
+	_requested_throttle = clampf(throttle, -1.0, 1.0)
+	_requested_steering = clampf(steering, -1.0, 1.0)
+
+
+func set_vehicle_identity(identifier: String, body_color: Color) -> void:
+	vehicle_id = identifier
+	body_visual.color = body_color
+
+
 func reset_motion() -> void:
 	current_speed = 0.0
 	current_steer_rate = 0.0
@@ -63,8 +84,7 @@ func reset_motion() -> void:
 	speed_changed.emit(0.0)
 
 
-func _update_speed(delta: float) -> void:
-	var throttle := Input.get_axis("brake_reverse", "accelerate")
+func _update_speed(throttle: float, delta: float) -> void:
 	var target_speed := 0.0
 	var change_rate := coast_deceleration
 
@@ -78,8 +98,7 @@ func _update_speed(delta: float) -> void:
 	current_speed = move_toward(current_speed, target_speed, change_rate * delta)
 
 
-func _update_steering(delta: float) -> void:
-	var steering_input := Input.get_axis("steer_left", "steer_right")
+func _update_steering(steering_input: float, delta: float) -> void:
 	var speed_ratio := clampf(absf(current_speed) / maximum_forward_speed, 0.0, 1.0)
 	var target_steer_rate := steering_input * maximum_steer_rate * speed_ratio
 	current_steer_rate = move_toward(

@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://brtu43eneqmpu" path="res://scripts/main/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/environment/ArcadeBackdrop.tscn" id="2_backdrop"]
 [ext_resource type="PackedScene" uid="uid://b37eyx4k4ecde" path="res://scenes/tracks/greenwood_gp/GreenwoodGP.tscn" id="3_track"]
-[ext_resource type="PackedScene" path="res://scenes/car/Car.tscn" id="4_car"]
+[ext_resource type="PackedScene" path="res://scenes/managers/RaceManager.tscn" id="4_manager"]
 [ext_resource type="PackedScene" path="res://scenes/ui/RaceHUD.tscn" id="5_hud"]
 [ext_resource type="PackedScene" uid="uid://c1qv57slps02v" path="res://scenes/camera/RaceCamera.tscn" id="6_camera"]
 
@@ -14,7 +14,7 @@ script = ExtResource("1_main")
 
 [node name="Track" parent="." unique_id=1990762976 instance=ExtResource("3_track")]
 
-[node name="Car" parent="." unique_id=593998531 instance=ExtResource("4_car")]
+[node name="RaceManager" parent="." instance=ExtResource("4_manager")]
 
 [node name="RaceCamera" parent="." unique_id=2084282627 instance=ExtResource("6_camera")]
 

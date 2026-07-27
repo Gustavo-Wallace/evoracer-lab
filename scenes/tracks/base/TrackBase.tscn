@@ -30,6 +30,8 @@ z_index = 2
 [node name="CenterMarkings" type="Node2D" parent="."]
 z_index = 1
 
+[node name="RacingLine" type="Path2D" parent="."]
+
 [node name="StartGrid" type="Node2D" parent="."]
 z_index = 3
 
