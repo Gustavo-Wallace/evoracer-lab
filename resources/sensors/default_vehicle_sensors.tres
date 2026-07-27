@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="VehicleSensorConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/sensors/vehicle_sensor_config.gd" id="1_config"]
+
+[resource]
+script = ExtResource("1_config")
+sensor_names = PackedStringArray("front", "front_short_left", "front_short_right", "front_open_left", "front_open_right", "left", "right")
+sensor_angles_degrees = PackedFloat32Array(0, -25, 25, -55, 55, -90, 90)
+sensor_ranges = PackedFloat32Array(420, 320, 320, 270, 270, 220, 220)
+ray_origin = Vector2(0, -20)
+navigable_limit_mask = 1
+car_mask = 2
+detect_other_cars = false
+checkpoint_distance_reference = 1600.0

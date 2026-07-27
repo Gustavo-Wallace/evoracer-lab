@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/car_controller.gd" id="1_car"]
 [ext_resource type="Resource" path="res://resources/vehicles/default_car_dimensions.tres" id="2_dimensions"]
 [ext_resource type="Script" path="res://scripts/race/race_progress_tracker.gd" id="3_progress"]
 [ext_resource type="PackedScene" path="res://scenes/vehicles/components/VehicleSurfaceHandler.tscn" id="4_surface"]
+[ext_resource type="PackedScene" path="res://scenes/vehicles/components/VehicleSensors.tscn" id="5_sensors"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_car"]
 size = Vector2(36, 50)
@@ -102,3 +103,5 @@ shape = SubResource("RectangleShape2D_car")
 script = ExtResource("3_progress")
 
 [node name="VehicleSurface" parent="." instance=ExtResource("4_surface")]
+
+[node name="VehicleSensors" parent="." instance=ExtResource("5_sensors")]

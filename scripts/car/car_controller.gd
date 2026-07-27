@@ -39,6 +39,7 @@ var _requested_steering := 0.0
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var body_visual: Polygon2D = $Body
 @onready var surface_handler: VehicleSurfaceHandler = $VehicleSurface
+@onready var vehicle_sensors: VehicleSensors = $VehicleSensors
 
 
 func _ready() -> void:
@@ -77,6 +78,14 @@ func _physics_process(delta: float) -> void:
 
 func get_speed_kmh() -> float:
 	return absf(current_speed) * pixels_per_second_to_kmh
+
+
+func get_neural_inputs() -> PackedFloat32Array:
+	return vehicle_sensors.get_neural_inputs()
+
+
+func get_neural_input_names() -> PackedStringArray:
+	return vehicle_sensors.get_input_names()
 
 
 func set_control_inputs(throttle: float, steering: float) -> void:

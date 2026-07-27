@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/sensors/vehicle_sensors.gd" id="1_sensors"]
+[ext_resource type="Resource" path="res://resources/sensors/default_vehicle_sensors.tres" id="2_config"]
+
+[node name="VehicleSensors" type="Node2D"]
+z_index = 20
+script = ExtResource("1_sensors")
+config = ExtResource("2_config")
