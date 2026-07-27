@@ -1,23 +1,28 @@
-[gd_resource type="Theme" load_steps=2 format=3]
+[gd_resource type="Theme" format=3 uid="uid://cx04k8jf4b35c"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
-bg_color = Color(0.035, 0.059, 0.078, 0.9)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.27, 0.42, 0.52, 0.65)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_classic"]
 content_margin_left = 14.0
-content_margin_top = 9.0
+content_margin_top = 7.0
 content_margin_right = 14.0
-content_margin_bottom = 9.0
+content_margin_bottom = 7.0
+bg_color = Color(0.12, 0.14, 0.14, 0.94)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.95, 0.9, 0.77, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+shadow_color = Color(0.05, 0.08, 0.04, 0.55)
+shadow_size = 4
+shadow_offset = Vector2(3, 3)
 
 [resource]
 default_font_size = 18
-Label/colors/font_color = Color(0.79, 0.89, 0.94, 1)
+Label/colors/font_color = Color(1, 0.95, 0.82, 1)
+Label/colors/font_outline_color = Color(0.1, 0.11, 0.1, 1)
+Label/constants/outline_size = 3
 Label/font_sizes/font_size = 18
-PanelContainer/styles/panel = SubResource("StyleBoxFlat_hud")
+PanelContainer/styles/panel = SubResource("StyleBoxFlat_classic")

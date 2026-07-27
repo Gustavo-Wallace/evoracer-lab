@@ -1,22 +1,21 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/main/main.gd" id="1_main"]
-[ext_resource type="PackedScene" path="res://scenes/track/Track.tscn" id="2_track"]
-[ext_resource type="PackedScene" path="res://scenes/car/Car.tscn" id="3_car"]
-[ext_resource type="PackedScene" path="res://scenes/ui/RaceHUD.tscn" id="4_hud"]
+[ext_resource type="PackedScene" path="res://scenes/environment/ArcadeBackdrop.tscn" id="2_backdrop"]
+[ext_resource type="PackedScene" path="res://scenes/tracks/greenwood_gp/GreenwoodGP.tscn" id="3_track"]
+[ext_resource type="PackedScene" path="res://scenes/car/Car.tscn" id="4_car"]
+[ext_resource type="PackedScene" path="res://scenes/ui/RaceHUD.tscn" id="5_hud"]
+[ext_resource type="PackedScene" path="res://scenes/camera/RaceCamera.tscn" id="6_camera"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 
-[node name="Track" parent="." instance=ExtResource("2_track")]
+[node name="ArcadeBackdrop" parent="." instance=ExtResource("2_backdrop")]
 
-[node name="Car" parent="." instance=ExtResource("3_car")]
-position = Vector2(410, 575)
-rotation = 1.5707963
+[node name="Track" parent="." instance=ExtResource("3_track")]
 
-[node name="CircuitCamera" type="Camera2D" parent="."]
-position = Vector2(640, 360)
-enabled = true
-position_smoothing_enabled = false
+[node name="Car" parent="." instance=ExtResource("4_car")]
 
-[node name="HUD" parent="." instance=ExtResource("4_hud")]
+[node name="RaceCamera" parent="." instance=ExtResource("6_camera")]
+
+[node name="HUD" parent="." instance=ExtResource("5_hud")]

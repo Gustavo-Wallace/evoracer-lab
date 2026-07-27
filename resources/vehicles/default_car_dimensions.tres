@@ -1,0 +1,6 @@
+[gd_resource type="Resource" script_class="VehicleDimensions" format=3 uid="uid://c5kk1fq3m55fi"]
+
+[ext_resource type="Script" uid="uid://dby7tjnxgyvss" path="res://scripts/vehicles/vehicle_dimensions.gd" id="1_dimensions"]
+
+[resource]
+script = ExtResource("1_dimensions")

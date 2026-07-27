@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://b37eyx4k4ecde"]
+
+[ext_resource type="PackedScene" path="res://scenes/tracks/base/TrackBase.tscn" id="1_base"]
+
+[node name="GreenwoodGP" unique_id=113596237 instance=ExtResource("1_base")]
+track_id = &"greenwood_gp"
+display_name = "GREENWOOD GP"
+centerline_points = PackedVector2Array(650, 2050, 1200, 2050, 1900, 2050, 2600, 2050, 3050, 2040, 3300, 1950, 3500, 1750, 3560, 1450, 3500, 1200, 3300, 1050, 3050, 920, 3250, 730, 3000, 520, 2750, 340, 2500, 360, 2380, 520, 2100, 560, 1650, 560, 1200, 560, 850, 560, 650, 560, 520, 690, 360, 560, 230, 720, 160, 1000, 190, 1400, 300, 1750, 480, 1970)
+smoothing_iterations = 2
+start_line_anchor = Vector2(1050, 2050)
+road_color = Color(0.337, 0.349, 0.365, 1)
+track_shadow_color = Color(0.18, 0.39, 0.18, 1)
+curb_base_color = Color(0.96, 0.93, 0.84, 1)
+curb_red_color = Color(0.82, 0.21, 0.16, 1)
+center_marking_color = Color(0.96, 0.91, 0.7, 0.38)

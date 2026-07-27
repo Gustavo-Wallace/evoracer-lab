@@ -1,11 +1,12 @@
 # EVO RACER LAB
 
-Base de uma simulação de corrida 2D vista de cima feita no Godot 4.7. O projeto começa com direção manual e uma arquitetura separada por responsabilidades, preparada para receber sensores, redes neurais e evolução por algoritmo genético em etapas futuras.
+Simulação de corrida 2D vista de cima criada no Godot 4.7. A base atual oferece direção manual, visual arcade retrô e uma estrutura reutilizável de circuitos; futuramente, o laboratório terá múltiplas pistas e treinamento evolutivo de agentes.
 
 ## Executar
 
-1. Abra a pasta do projeto no Godot 4.7.
-2. Execute a cena principal com **F6/F5** (o projeto já aponta para `Main.tscn`).
-3. Use **W/S** para acelerar, frear ou engatar a ré e **A/D** para esterçar.
+1. Abra a pasta no Godot 4.7 e execute o projeto com **F6/F5**.
+2. Use **W/S** para acelerar, frear ou engatar a ré.
+3. Use **A/D** para esterçar.
+4. Pressione **C** para alternar entre câmera de acompanhamento e visão geral.
 
-Nesta etapa não há rede neural, população, sensores ou algoritmo genético.
+Nesta etapa não há IA, sensores, checkpoints, população ou algoritmo genético.

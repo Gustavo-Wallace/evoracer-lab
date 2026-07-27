@@ -1,7 +1,80 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/race_hud.gd" id="1_hud"]
 [ext_resource type="Theme" path="res://resources/themes/hud_theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_title"]
+bg_color = Color(0.72, 0.16, 0.12, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.92, 0.7, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+shadow_color = Color(0.12, 0.12, 0.07, 0.5)
+shadow_size = 2
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_track"]
+bg_color = Color(0.95, 0.86, 0.62, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.18, 0.2, 0.17, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 10.0
+content_margin_top = 4.0
+content_margin_right = 10.0
+content_margin_bottom = 4.0
+shadow_color = Color(0.1, 0.16, 0.08, 0.42)
+shadow_size = 2
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_speed"]
+bg_color = Color(0.13, 0.15, 0.15, 0.96)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.94, 0.72, 0.18, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 10.0
+content_margin_top = 3.0
+content_margin_right = 10.0
+content_margin_bottom = 3.0
+shadow_color = Color(0.08, 0.1, 0.07, 0.55)
+shadow_size = 2
+shadow_offset = Vector2(2, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mode"]
+bg_color = Color(0.94, 0.9, 0.75, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.16, 0.24, 0.13, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 9.0
+content_margin_top = 3.0
+content_margin_right = 9.0
+content_margin_bottom = 3.0
 
 [node name="HUD" type="CanvasLayer"]
 layer = 10
@@ -19,16 +92,36 @@ theme = ExtResource("2_theme")
 
 [node name="TitlePanel" type="PanelContainer" parent="Layout"]
 layout_mode = 0
-offset_left = 28.0
-offset_top = 24.0
-offset_right = 257.0
-offset_bottom = 68.0
+offset_left = 16.0
+offset_top = 14.0
+offset_right = 218.0
+offset_bottom = 50.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_title")
 
 [node name="TitleLabel" type="Label" parent="Layout/TitlePanel"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.33, 0.88, 0.96, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(1, 0.95, 0.78, 1)
+theme_override_font_sizes/font_size = 17
 text = "EVO RACER LAB"
+horizontal_alignment = 1
+
+[node name="TrackPanel" type="PanelContainer" parent="Layout"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -126.0
+offset_top = 14.0
+offset_right = 126.0
+offset_bottom = 48.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_track")
+
+[node name="TrackLabel" type="Label" parent="Layout/TrackPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.14, 0.17, 0.14, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 13
+text = "TRACK 01 - GREENWOOD GP"
 horizontal_alignment = 1
 
 [node name="SpeedPanel" type="PanelContainer" parent="Layout"]
@@ -36,35 +129,43 @@ layout_mode = 0
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -188.0
-offset_top = 24.0
-offset_right = -28.0
-offset_bottom = 68.0
+offset_left = -180.0
+offset_top = 12.0
+offset_right = -16.0
+offset_bottom = 58.0
 grow_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_speed")
 
-[node name="SpeedLabel" type="Label" parent="Layout/SpeedPanel"]
+[node name="SpeedReadout" type="HBoxContainer" parent="Layout/SpeedPanel"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.91, 0.96, 0.98, 1)
-theme_override_font_sizes/font_size = 20
-text = "000 km/h"
-horizontal_alignment = 1
+theme_override_constants/separation = 6
+alignment = 2
+
+[node name="SpeedValue" type="Label" parent="Layout/SpeedPanel/SpeedReadout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.82, 0.25, 1)
+theme_override_font_sizes/font_size = 24
+text = "000"
+
+[node name="SpeedUnit" type="Label" parent="Layout/SpeedPanel/SpeedReadout"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.82, 1)
+theme_override_font_sizes/font_size = 11
+text = "KM/H"
+vertical_alignment = 2
 
 [node name="ModePanel" type="PanelContainer" parent="Layout"]
 layout_mode = 0
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -109.0
-offset_top = -58.0
-offset_right = 109.0
-offset_bottom = -20.0
-grow_horizontal = 2
-grow_vertical = 0
+offset_left = 16.0
+offset_top = 680.0
+offset_right = 171.0
+offset_bottom = 708.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_mode")
 
 [node name="ModeLabel" type="Label" parent="Layout/ModePanel"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.62, 0.72, 0.78, 1)
-theme_override_font_sizes/font_size = 15
-text = "Manual Test Mode"
+theme_override_colors/font_color = Color(0.14, 0.22, 0.12, 1)
+theme_override_constants/outline_size = 0
+theme_override_font_sizes/font_size = 11
+text = "MANUAL TEST MODE"
 horizontal_alignment = 1

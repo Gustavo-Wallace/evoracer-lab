@@ -1,14 +1,16 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/car/car_controller.gd" id="1_car"]
+[ext_resource type="Resource" path="res://resources/vehicles/default_car_dimensions.tres" id="2_dimensions"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_car"]
-size = Vector2(28, 50)
+size = Vector2(36, 50)
 
-[node name="Car" type="CharacterBody2D"]
+[node name="Car" type="CharacterBody2D" groups=["race_cars"]]
 collision_layer = 2
 collision_mask = 1
 script = ExtResource("1_car")
+dimensions = ExtResource("2_dimensions")
 
 [node name="Shadow" type="Polygon2D" parent="."]
 z_index = -1
@@ -18,7 +20,7 @@ color = Color(0, 0, 0, 0.4)
 
 [node name="Body" type="Polygon2D" parent="."]
 polygon = PackedVector2Array(-14, 25, 14, 25, 18, 12, 15, -20, 10, -28, -10, -28, -15, -20, -18, 12)
-color = Color(0.08, 0.72, 0.84, 1)
+color = Color(0.08, 0.5, 0.72, 1)
 
 [node name="Cabin" type="Polygon2D" parent="."]
 z_index = 1
@@ -28,7 +30,7 @@ color = Color(0.035, 0.105, 0.145, 1)
 [node name="CenterStripe" type="Polygon2D" parent="."]
 z_index = 2
 polygon = PackedVector2Array(-2, 24, 2, 24, 2, -27, -2, -27)
-color = Color(0.72, 0.94, 0.96, 0.8)
+color = Color(1, 0.74, 0.2, 0.92)
 
 [node name="LeftHeadlight" type="Polygon2D" parent="."]
 z_index = 2

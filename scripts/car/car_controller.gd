@@ -20,8 +20,23 @@ signal speed_changed(speed_kmh: float)
 @export_range(0.0, 1.0) var collision_rebound := 0.12
 @export var pixels_per_second_to_kmh := 0.36
 
+@export_category("Vehicle")
+@export var dimensions: VehicleDimensions
+
 var current_speed := 0.0
 var current_steer_rate := 0.0
+
+@onready var collision_shape: CollisionShape2D = $CollisionShape2D
+
+
+func _ready() -> void:
+	if dimensions == null:
+		push_error("CarController requires a VehicleDimensions resource.")
+		return
+
+	var rectangle := collision_shape.shape as RectangleShape2D
+	if rectangle != null:
+		rectangle.size = Vector2(dimensions.body_width, dimensions.body_length)
 
 
 func _physics_process(delta: float) -> void:

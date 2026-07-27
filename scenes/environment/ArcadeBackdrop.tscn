@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/environment/arcade_backdrop.gd" id="1_backdrop"]
+
+[node name="ArcadeBackdrop" type="Node2D"]
+z_index = -100
+script = ExtResource("1_backdrop")
