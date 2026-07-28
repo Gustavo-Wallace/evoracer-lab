@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/race_hud.gd" id="1_hud"]
 [ext_resource type="Theme" path="res://resources/themes/hud_theme.tres" id="2_theme"]
@@ -94,6 +94,44 @@ content_margin_left = 9.0
 content_margin_top = 3.0
 content_margin_right = 9.0
 content_margin_bottom = 3.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_leaderboard"]
+bg_color = Color(0.09, 0.11, 0.1, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.94, 0.86, 0.65, 0.92)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 9.0
+content_margin_top = 6.0
+content_margin_right = 9.0
+content_margin_bottom = 6.0
+shadow_color = Color(0.04, 0.06, 0.03, 0.55)
+shadow_size = 3
+shadow_offset = Vector2(3, 3)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_event"]
+bg_color = Color(0.58, 0.12, 0.09, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.98, 0.82, 0.35, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 14.0
+content_margin_top = 5.0
+content_margin_right = 14.0
+content_margin_bottom = 5.0
+shadow_color = Color(0.04, 0.06, 0.03, 0.55)
+shadow_size = 3
+shadow_offset = Vector2(3, 3)
 
 [node name="HUD" type="CanvasLayer"]
 layer = 10
@@ -220,6 +258,61 @@ layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.95, 0.82, 1)
 theme_override_font_sizes/font_size = 10
 text = "SELECTED | CAR-01 | P01/12"
+horizontal_alignment = 1
+
+[node name="LeaderboardPanel" type="PanelContainer" parent="Layout"]
+layout_mode = 0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -300.0
+offset_top = 106.0
+offset_right = -16.0
+offset_bottom = 324.0
+grow_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_leaderboard")
+
+[node name="Content" type="VBoxContainer" parent="Layout/LeaderboardPanel"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="HeaderLabel" type="Label" parent="Layout/LeaderboardPanel/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84, 0.4, 1)
+theme_override_constants/outline_size = 1
+theme_override_font_sizes/font_size = 11
+text = "RACE STANDINGS  [L]"
+
+[node name="Separator" type="HSeparator" parent="Layout/LeaderboardPanel/Content"]
+layout_mode = 2
+
+[node name="Rows" type="RichTextLabel" parent="Layout/LeaderboardPanel/Content"]
+custom_minimum_size = Vector2(264, 174)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.94, 0.91, 0.76, 1)
+theme_override_font_sizes/normal_font_size = 10
+bbcode_enabled = true
+text = "01  CAR-01  L1/3  --"
+fit_content = true
+scroll_active = false
+
+[node name="EventPanel" type="PanelContainer" parent="Layout"]
+visible = false
+layout_mode = 0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -220.0
+offset_top = 80.0
+offset_right = 220.0
+offset_bottom = 112.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_event")
+
+[node name="EventLabel" type="Label" parent="Layout/EventPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.62, 1)
+theme_override_font_sizes/font_size = 12
+text = "NEW LEADER · CAR-01"
 horizontal_alignment = 1
 
 [node name="ModePanel" type="PanelContainer" parent="Layout"]
