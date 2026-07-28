@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="NeuralFitnessConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/evaluation/neural_fitness_config.gd" id="1_config"]
+
+[resource]
+script = ExtResource("1_config")
+agent_count = 12
+maximum_duration = 120.0
+sample_interval = 0.1
+initial_grace_time = 4.0
+no_progress_time_limit = 20.0
+stationary_time_limit = 10.0
+wrong_direction_time_limit = 7.0
+stationary_speed_threshold = 24.0
+wrong_direction_minimum_speed = 45.0
+wrong_direction_alignment = -0.25
+lap_tier_weight = 250000.0
+non_lap_component_limit = 100000.0
+valid_progress_weight = 1200.0
+valid_checkpoint_weight = 4000.0
+finish_line_crossing_weight = 15000.0
+target_lap_time = 80.0
+fast_lap_second_weight = 200.0
+fast_lap_bonus_limit = 15000.0
+useful_speed_weight = 3000.0
+asphalt_ratio_weight = 2500.0
+best_position_weight = 1000.0
+final_position_weight = 750.0
+leader_second_weight = 10.0
+overtake_weight = 100.0
+stationary_second_penalty = 120.0
+wrong_direction_second_penalty = 300.0
+grass_second_penalty = 60.0
+barrier_contact_penalty = 250.0
+barrier_second_penalty = 80.0
+no_progress_penalty_grace = 4.0
+no_progress_second_penalty = 150.0
+spinning_second_penalty = 200.0
+spinning_angular_speed = 2.0
+spinning_linear_speed_limit = 60.0

@@ -11,6 +11,9 @@ Abra a pasta no Godot 4.7 e execute a cena principal com **F6/F5**.
 - **Q/E**, **G**, **M**: trocar alvo, sortear alvo e voltar ao manual.
 - **V**: sensores e telemetria neural do carro acompanhado.
 - **K**: gerar novos pesos e reposicionar os agentes neurais.
+- **F**: iniciar ou reiniciar uma avaliação com 12 agentes neurais.
+- **B**: encerrar o modo de avaliação e voltar ao teste manual.
+- **H**: ocultar ou exibir os resultados da avaliação.
 - **L**, **P**, **R**, **N**: classificação, checkpoints, respawn manual e nova corrida.
 
-Ainda não há algoritmo genético, fitness, seleção, mutação ou gerações automáticas.
+O projeto já calcula fitness e resultados de avaliações neurais. Ainda não há seleção genética, elitismo, cruzamento, mutação ou gerações automáticas.

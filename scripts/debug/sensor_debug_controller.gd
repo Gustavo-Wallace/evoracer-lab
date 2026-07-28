@@ -3,12 +3,14 @@ extends CanvasLayer
 
 @export var toggle_action: StringName = &"toggle_sensor_debug"
 @export var camera_path := NodePath("../RaceCamera")
+@export var evaluation_manager_path := NodePath("../NeuralEvaluationManager")
 
 var _debug_enabled := false
 var _camera: RaceCamera
 var _target: CarController
 var _active_sensors: VehicleSensors
 var _neural_controller: NeuralCarController
+var _evaluation_manager: NeuralEvaluationManager
 
 @onready var panel: PanelContainer = $Layout/SensorPanel
 @onready var title_label: Label = $Layout/SensorPanel/Content/TitleLabel
@@ -17,12 +19,19 @@ var _neural_controller: NeuralCarController
 @onready var neural_panel: PanelContainer = $Layout/NeuralPanel
 @onready var neural_title: Label = $Layout/NeuralPanel/Content/TitleLabel
 @onready var neural_values: Label = $Layout/NeuralPanel/Content/ValuesLabel
+@onready var fitness_panel: PanelContainer = $Layout/FitnessPanel
+@onready var fitness_title: Label = $Layout/FitnessPanel/Content/TitleLabel
+@onready var fitness_values: Label = $Layout/FitnessPanel/Content/ValuesLabel
 
 
 func _ready() -> void:
 	_camera = get_node_or_null(camera_path) as RaceCamera
+	_evaluation_manager = get_node_or_null(
+		evaluation_manager_path
+	) as NeuralEvaluationManager
 	panel.visible = false
 	neural_panel.visible = false
+	fitness_panel.visible = false
 
 
 func _process(_delta: float) -> void:
@@ -42,6 +51,18 @@ func _process(_delta: float) -> void:
 	neural_panel.visible = _debug_enabled and _neural_controller != null
 	if neural_panel.visible:
 		_update_neural_panel()
+	var fitness_breakdown := (
+		_evaluation_manager.get_fitness_breakdown(_target)
+		if _evaluation_manager != null and _target != null
+		else {}
+	)
+	fitness_panel.visible = (
+		_debug_enabled
+		and _neural_controller != null
+		and not fitness_breakdown.is_empty()
+	)
+	if fitness_panel.visible:
+		_update_fitness_panel(fitness_breakdown)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -60,6 +81,7 @@ func set_debug_enabled(is_enabled: bool) -> void:
 		_active_sensors.set_debug_visible(_debug_enabled)
 	panel.visible = _debug_enabled and _active_sensors != null
 	neural_panel.visible = _debug_enabled and _neural_controller != null
+	fitness_panel.visible = false
 
 
 func _set_target(candidate: CarController) -> void:
@@ -121,4 +143,40 @@ func _update_neural_panel() -> void:
 		float(snapshot["acceleration"]),
 		float(snapshot["brake_reverse"]),
 		float(snapshot["throttle"]),
+	]
+
+
+func _update_fitness_panel(breakdown: Dictionary) -> void:
+	var components: Dictionary = breakdown["components"]
+	var primary := (
+		float(components.get("valid_progress", 0.0))
+		+ float(components.get("checkpoints", 0.0))
+		+ float(components.get("finish_crossings", 0.0))
+		+ float(components.get("fast_laps", 0.0))
+	)
+	var secondary := (
+		float(components.get("useful_speed", 0.0))
+		+ float(components.get("asphalt", 0.0))
+		+ float(components.get("best_position", 0.0))
+		+ float(components.get("final_position", 0.0))
+		+ float(components.get("leader_time", 0.0))
+		+ float(components.get("overtakes", 0.0))
+	)
+	var penalties := (
+		float(components.get("stationary_penalty", 0.0))
+		+ float(components.get("wrong_way_penalty", 0.0))
+		+ float(components.get("grass_penalty", 0.0))
+		+ float(components.get("barrier_penalty", 0.0))
+		+ float(components.get("no_progress_penalty", 0.0))
+		+ float(components.get("spinning_penalty", 0.0))
+	)
+	fitness_title.text = "FITNESS BREAKDOWN  |  %s" % String(breakdown["reason"])
+	fitness_values.text = "TOTAL %+.0f   LAP TIER %+.0f\nPROGRESS %+.0f   SECONDARY %+.0f   PENALTIES %+.0f\nRAW %+.0f   BOUNDED %+.0f" % [
+		float(breakdown["fitness"]),
+		float(components.get("lap_tier", 0.0)),
+		primary,
+		secondary,
+		penalties,
+		float(components.get("non_lap_raw", 0.0)),
+		float(components.get("non_lap_bounded", 0.0)),
 	]

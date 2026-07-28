@@ -319,7 +319,7 @@ horizontal_alignment = 1
 layout_mode = 0
 offset_left = 16.0
 offset_top = 680.0
-offset_right = 171.0
+offset_right = 238.0
 offset_bottom = 708.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_mode")
 

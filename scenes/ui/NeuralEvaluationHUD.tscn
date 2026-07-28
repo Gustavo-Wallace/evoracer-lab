@@ -1,0 +1,103 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/neural_evaluation_hud.gd" id="1_hud"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_results"]
+bg_color = Color(0.09, 0.11, 0.1, 0.97)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.94, 0.78, 0.3, 0.96)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+content_margin_left = 14.0
+content_margin_top = 10.0
+content_margin_right = 14.0
+content_margin_bottom = 10.0
+shadow_color = Color(0.03, 0.05, 0.03, 0.68)
+shadow_size = 5
+shadow_offset = Vector2(4, 4)
+
+[node name="NeuralEvaluationHUD" type="CanvasLayer"]
+layer = 30
+script = ExtResource("1_hud")
+
+[node name="Layout" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="StatusPanel" type="PanelContainer" parent="Layout"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -330.0
+offset_top = -42.0
+offset_right = 330.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_results")
+
+[node name="StatusLabel" type="Label" parent="Layout/StatusPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.62, 1)
+theme_override_font_sizes/font_size = 10
+text = "NEURAL EVALUATION  000.0/120.0s  12/12 ACTIVE"
+horizontal_alignment = 1
+
+[node name="ResultsPanel" type="PanelContainer" parent="Layout"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -570.0
+offset_top = -225.0
+offset_right = 570.0
+offset_bottom = 225.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_results")
+
+[node name="Content" type="VBoxContainer" parent="Layout/ResultsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TitleLabel" type="Label" parent="Layout/ResultsPanel/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84, 0.4, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.06, 0.04, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 15
+text = "NEURAL FITNESS RESULTS  ·  12 AGENTS  ·  [H] HIDE"
+horizontal_alignment = 1
+
+[node name="Separator" type="HSeparator" parent="Layout/ResultsPanel/Content"]
+layout_mode = 2
+
+[node name="HeaderLabel" type="Label" parent="Layout/ResultsPanel/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84, 0.79, 0.63, 1)
+theme_override_font_sizes/font_size = 10
+text = "RK  AGENT       FITNESS   PROGR    CP LAP  AVG KMH  ROAD    FINAL OVT  END REASON"
+
+[node name="Rows" type="RichTextLabel" parent="Layout/ResultsPanel/Content"]
+custom_minimum_size = Vector2(1100, 350)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.94, 0.91, 0.76, 1)
+theme_override_font_sizes/normal_font_size = 10
+bbcode_enabled = true
+text = "01  AGENT-01    000000   0.00   0  0   0.0  100.0%  P01   0  RUNNING"
+fit_content = true
+scroll_active = false

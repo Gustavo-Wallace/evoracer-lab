@@ -132,3 +132,40 @@ theme_override_colors/font_outline_color = Color(0.04, 0.03, 0.05, 1)
 theme_override_constants/outline_size = 1
 theme_override_font_sizes/font_size = 9
 text = "RAW  STEER +0.00   ACCEL +0.00   BRAKE +0.00\nAPPLIED  STEER +0.00   ACCEL 0.50   BRAKE 0.50\nTHROTTLE +0.00"
+
+[node name="FitnessPanel" type="PanelContainer" parent="Layout"]
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -420.0
+offset_top = -402.0
+offset_right = -16.0
+offset_bottom = -280.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_neural_panel")
+
+[node name="Content" type="VBoxContainer" parent="Layout/FitnessPanel"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="TitleLabel" type="Label" parent="Layout/FitnessPanel/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84, 0.64, 0.96, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.03, 0.05, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 11
+text = "FITNESS BREAKDOWN  |  RUNNING"
+
+[node name="Separator" type="HSeparator" parent="Layout/FitnessPanel/Content"]
+layout_mode = 2
+
+[node name="ValuesLabel" type="Label" parent="Layout/FitnessPanel/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.9, 0.97, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.03, 0.05, 1)
+theme_override_constants/outline_size = 1
+theme_override_font_sizes/font_size = 9
+text = "TOTAL +0   LAP TIER +0\nPROGRESS +0   SECONDARY +0   PENALTIES +0\nRAW +0   BOUNDED +0"

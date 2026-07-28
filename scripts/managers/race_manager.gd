@@ -7,6 +7,7 @@ signal race_event(message: String, event_type: StringName, car: CarController)
 signal race_started(total_laps: int)
 signal car_finished(car: CarController, position: int, finish_time: float)
 signal race_finished(reason: StringName, elapsed_time: float)
+signal race_mode_changed(neural_evaluation_mode: bool)
 
 const CAR_SCENE := preload("res://scenes/car/Car.tscn")
 const CarRaceTelemetry := preload("res://scripts/race/car_race_telemetry.gd")
@@ -70,6 +71,8 @@ var _race_best_lap := 0.0
 var _race_active := false
 var _restart_pending := false
 var _neural_seed_batch := 0
+var _neural_evaluation_mode := false
+var _evaluation_agent_count := 12
 
 
 func _ready() -> void:
@@ -108,7 +111,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("restart_race") and not event.is_echo():
 		restart_race()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("randomize_neural_genomes") and not event.is_echo():
+	elif (
+		event.is_action_pressed("randomize_neural_genomes")
+		and not event.is_echo()
+		and not _neural_evaluation_mode
+	):
 		randomize_neural_genomes()
 		get_viewport().set_input_as_handled()
 
@@ -149,6 +156,14 @@ func get_neural_cars() -> Array[CarController]:
 		if _neural_controllers_by_car.has(car):
 			result.append(car)
 	return result
+
+
+func is_neural_evaluation_mode() -> bool:
+	return _neural_evaluation_mode
+
+
+func get_progress_tracker(car: CarController) -> RaceProgressTracker:
+	return _progress_by_car.get(car) as RaceProgressTracker
 
 
 func get_position_for_car(car: CarController) -> int:
@@ -227,6 +242,26 @@ func randomize_neural_genomes() -> void:
 	race_event.emit("NEURAL WEIGHTS RESET", &"NEURAL_RESET", null)
 
 
+func start_neural_evaluation(agent_count: int) -> void:
+	_evaluation_agent_count = clampi(agent_count, 2, 24)
+	_neural_evaluation_mode = true
+	race_mode_changed.emit(true)
+	restart_race()
+
+
+func return_to_standard_mode() -> void:
+	if not _neural_evaluation_mode:
+		return
+	_neural_evaluation_mode = false
+	race_mode_changed.emit(false)
+	restart_race()
+
+
+func finish_neural_evaluation_race() -> void:
+	if _neural_evaluation_mode and _race_active:
+		_end_race(&"EVALUATION_COMPLETE")
+
+
 func restart_race() -> void:
 	if _restart_pending:
 		return
@@ -267,7 +302,12 @@ func _start_race() -> void:
 	_confirmed_leader = get_leader()
 	_update_rankings(0.0)
 	race_started.emit(total_laps)
-	race_event.emit("NEW RACE · %d LAPS" % total_laps, &"RACE_START", null)
+	var start_message := (
+		"NEURAL EVALUATION · %d AGENTS" % _cars.size()
+		if _neural_evaluation_mode
+		else "NEW RACE · %d LAPS" % total_laps
+	)
+	race_event.emit(start_message, &"RACE_START", null)
 
 
 func _find_track() -> void:
@@ -278,21 +318,30 @@ func _find_track() -> void:
 
 
 func _spawn_cars() -> void:
-	var grid_transforms := _track.get_start_grid_transforms(car_count)
-	var neural_start_index := maxi(car_count - neural_car_count, 1)
+	var spawn_count := _evaluation_agent_count if _neural_evaluation_mode else car_count
+	var grid_transforms := _track.get_start_grid_transforms(spawn_count)
+	var neural_start_index := maxi(spawn_count - neural_car_count, 1)
 
-	for index in range(car_count):
+	for index in range(spawn_count):
 		var car := CAR_SCENE.instantiate() as CarController
-		car.manual_control_enabled = index == 0
-		car.transform = grid_transforms[index]
+		car.manual_control_enabled = not _neural_evaluation_mode and index == 0
+		car.transform = (
+			_track.get_start_transform()
+			if _neural_evaluation_mode
+			else grid_transforms[index]
+		)
 		cars_container.add_child(car)
 		car.set_vehicle_identity(
-			"CAR-%02d" % (index + 1),
+			(
+				"AGENT-%02d" % (index + 1)
+				if _neural_evaluation_mode
+				else "CAR-%02d" % (index + 1)
+			),
 			CAR_COLORS[index % CAR_COLORS.size()]
 		)
 
 		var progress := car.get_node("RaceProgress") as RaceProgressTracker
-		progress.allow_manual_respawn = index == 0
+		progress.allow_manual_respawn = not _neural_evaluation_mode and index == 0
 		_track.register_car(car)
 		progress.lap_completed.connect(_on_lap_completed.bind(car))
 		_progress_by_car[car] = progress
@@ -301,10 +350,10 @@ func _spawn_cars() -> void:
 		telemetry.initialize(car.vehicle_id, index + 1)
 		_telemetry_by_car[car] = telemetry
 
-		if index == 0:
+		if not _neural_evaluation_mode and index == 0:
 			manual_car = car
 			car.set_controller_kind(&"MANUAL")
-		elif index >= neural_start_index:
+		elif _neural_evaluation_mode or index >= neural_start_index:
 			car.set_controller_kind(&"NEURAL")
 			var neural_controller := (
 				NEURAL_CONTROLLER_SCENE.instantiate() as NeuralCarController
@@ -587,7 +636,7 @@ func _on_lap_completed(
 func _end_race(reason: StringName) -> void:
 	if not _race_active:
 		return
-	if reason == &"TIME_LIMIT":
+	if reason == &"TIME_LIMIT" or reason == &"EVALUATION_COMPLETE":
 		_update_rankings(0.0)
 		var next_position := _finish_order.size() + 1
 		for car in _ranked_cars:
@@ -600,7 +649,11 @@ func _end_race(reason: StringName) -> void:
 	_race_active = false
 	_update_rankings(0.0)
 	race_finished.emit(reason, _race_elapsed_time)
-	var message := "RACE COMPLETE" if reason == &"ALL_FINISHED" else "TIME LIMIT"
+	var message := "RACE COMPLETE"
+	if reason == &"TIME_LIMIT":
+		message = "TIME LIMIT"
+	elif reason == &"EVALUATION_COMPLETE":
+		message = "EVALUATION COMPLETE"
 	race_event.emit(message, &"RACE_END", get_leader())
 
 

@@ -4,6 +4,7 @@ extends Node2D
 @onready var race_manager: RaceManager = $RaceManager
 @onready var race_camera: RaceCamera = $RaceCamera
 @onready var hud: RaceHUD = $HUD
+@onready var neural_evaluation: NeuralEvaluationManager = $NeuralEvaluationManager
 
 
 func _ready() -> void:
@@ -11,6 +12,9 @@ func _ready() -> void:
 	race_manager.rankings_updated.connect(_on_rankings_updated)
 	race_manager.race_event.connect(_on_race_event)
 	race_camera.camera_state_changed.connect(_on_camera_state_changed)
+	neural_evaluation.evaluation_started.connect(_on_evaluation_started)
+	neural_evaluation.evaluation_finished.connect(_on_evaluation_finished)
+	neural_evaluation.evaluation_cancelled.connect(_on_evaluation_cancelled)
 	_update_leaderboard()
 
 
@@ -52,6 +56,18 @@ func _on_race_event(
 	_event_car: CarController
 ) -> void:
 	hud.show_race_event(message, event_type)
+
+
+func _on_evaluation_started(_duration: float, _agent_count: int) -> void:
+	hud.set_mode_label("NEURAL EVALUATION MODE")
+
+
+func _on_evaluation_finished(_results: Array[Dictionary]) -> void:
+	hud.set_mode_label("EVALUATION COMPLETE")
+
+
+func _on_evaluation_cancelled() -> void:
+	hud.set_mode_label("MANUAL TEST MODE")
 
 
 func _update_leaderboard() -> void:

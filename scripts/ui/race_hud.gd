@@ -11,6 +11,7 @@ extends CanvasLayer
 @onready var leaderboard_rows: RichTextLabel = $Layout/LeaderboardPanel/Content/Rows
 @onready var event_panel: PanelContainer = $Layout/EventPanel
 @onready var event_label: Label = $Layout/EventPanel/EventLabel
+@onready var mode_label: Label = $Layout/ModePanel/ModeLabel
 
 var _event_time_remaining := 0.0
 
@@ -35,6 +36,10 @@ func set_speed(speed_kmh: float) -> void:
 
 func set_track_name(track_name: String) -> void:
 	track_label.text = "TRACK 01 - %s" % track_name.to_upper()
+
+
+func set_mode_label(mode_name: String) -> void:
+	mode_label.text = mode_name.to_upper()
 
 
 func set_race_progress(
