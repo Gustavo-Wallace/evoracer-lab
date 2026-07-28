@@ -3,6 +3,11 @@ extends Resource
 
 @export var genome_id := "UNASSIGNED"
 @export var seed := 0
+@export var generation := 0
+@export var parent_id := "INITIAL_RANDOM"
+@export var is_elite := false
+@export var is_mutant := false
+@export var mutation_count := 0
 @export var input_count := 0
 @export var hidden_count := 0
 @export var output_count := 0
@@ -25,6 +30,11 @@ func configure_random(
 	output_count = maxi(new_output_count, 0)
 	seed = random_seed
 	genome_id = identifier if not identifier.is_empty() else "GENOME-%d" % seed
+	generation = 1
+	parent_id = "INITIAL_RANDOM"
+	is_elite = false
+	is_mutant = false
+	mutation_count = 0
 
 	var random := RandomNumberGenerator.new()
 	random.seed = seed
@@ -66,6 +76,11 @@ func copy_genome() -> NeuralGenome:
 	var result := NeuralGenome.new()
 	result.genome_id = genome_id
 	result.seed = seed
+	result.generation = generation
+	result.parent_id = parent_id
+	result.is_elite = is_elite
+	result.is_mutant = is_mutant
+	result.mutation_count = mutation_count
 	result.input_count = input_count
 	result.hidden_count = hidden_count
 	result.output_count = output_count
@@ -74,6 +89,28 @@ func copy_genome() -> NeuralGenome:
 	result.hidden_output_weights = hidden_output_weights.duplicate()
 	result.output_biases = output_biases.duplicate()
 	return result
+
+
+func get_parameter_count() -> int:
+	return (
+		input_hidden_weights.size()
+		+ hidden_biases.size()
+		+ hidden_output_weights.size()
+		+ output_biases.size()
+	)
+
+
+func get_parameters() -> PackedFloat32Array:
+	var result := PackedFloat32Array()
+	result.append_array(input_hidden_weights)
+	result.append_array(hidden_biases)
+	result.append_array(hidden_output_weights)
+	result.append_array(output_biases)
+	return result
+
+
+func has_identical_parameters(other: NeuralGenome) -> bool:
+	return other != null and get_parameters() == other.get_parameters()
 
 
 func save_to_file(path: String) -> Error:

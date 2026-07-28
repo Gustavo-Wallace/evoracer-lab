@@ -4,5 +4,6 @@
 [ext_resource type="Resource" path="res://resources/evaluation/default_neural_fitness.tres" id="2_fitness"]
 
 [node name="NeuralEvaluationManager" type="Node" groups=["neural_evaluation_manager"]]
+process_mode = 3
 script = ExtResource("1_manager")
 fitness_config = ExtResource("2_fitness")

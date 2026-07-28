@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://2fq0gcv7jm0i"]
+[gd_scene load_steps=12 format=3 uid="uid://2fq0gcv7jm0i"]
 
 [ext_resource type="Script" uid="uid://brtu43eneqmpu" path="res://scripts/main/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/environment/ArcadeBackdrop.tscn" id="2_backdrop"]
@@ -9,6 +9,8 @@
 [ext_resource type="PackedScene" path="res://scenes/debug/SensorDebugController.tscn" id="7_sensor_debug"]
 [ext_resource type="PackedScene" path="res://scenes/managers/NeuralEvaluationManager.tscn" id="8_evaluation_manager"]
 [ext_resource type="PackedScene" path="res://scenes/ui/NeuralEvaluationHUD.tscn" id="9_evaluation_hud"]
+[ext_resource type="PackedScene" path="res://scenes/managers/EvolutionManager.tscn" id="10_evolution_manager"]
+[ext_resource type="PackedScene" path="res://scenes/camera/CameraTargetMarker.tscn" id="11_target_marker"]
 
 [node name="Main" type="Node2D" unique_id=729015597]
 script = ExtResource("1_main")
@@ -21,7 +23,11 @@ script = ExtResource("1_main")
 
 [node name="NeuralEvaluationManager" parent="." instance=ExtResource("8_evaluation_manager")]
 
+[node name="EvolutionManager" parent="." instance=ExtResource("10_evolution_manager")]
+
 [node name="RaceCamera" parent="." unique_id=2084282627 instance=ExtResource("6_camera")]
+
+[node name="CameraTargetMarker" parent="." instance=ExtResource("11_target_marker")]
 
 [node name="HUD" parent="." unique_id=899550253 instance=ExtResource("5_hud")]
 

@@ -20,7 +20,14 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	var target := race_camera.get_target()
-	if target == null:
+	if not is_instance_valid(target):
+		hud.set_spectator_info(
+			race_camera.get_mode_label(),
+			"NONE",
+			0,
+			race_manager.get_car_count(),
+			"-"
+		)
 		return
 
 	var progress := target.get_node("RaceProgress") as RaceProgressTracker

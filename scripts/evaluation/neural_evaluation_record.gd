@@ -4,6 +4,12 @@ extends RefCounted
 var car: CarController
 var agent_id := ""
 var genome_id := ""
+var genome_seed := 0
+var parent_id := ""
+var genome_generation := 0
+var genome_is_elite := false
+var genome_is_mutant := false
+var genome_mutation_count := 0
 var active := true
 var end_reason: StringName = &"RUNNING"
 var elapsed_time := 0.0
@@ -56,6 +62,13 @@ func initialize(vehicle: CarController, controller: NeuralCarController) -> void
 		if controller != null and controller.genome != null
 		else "NONE"
 	)
+	if controller != null and controller.genome != null:
+		genome_seed = controller.genome.seed
+		parent_id = controller.genome.parent_id
+		genome_generation = controller.genome.generation
+		genome_is_elite = controller.genome.is_elite
+		genome_is_mutant = controller.genome.is_mutant
+		genome_mutation_count = controller.genome.mutation_count
 	best_position = 0
 	_last_rotation = vehicle.rotation
 	_maximum_speed_kmh = maxf(
@@ -280,6 +293,12 @@ func get_result_snapshot(fitness_rank: int) -> Dictionary:
 		"fitness_rank": fitness_rank,
 		"agent_id": agent_id,
 		"genome_id": genome_id,
+		"genome_seed": genome_seed,
+		"parent_id": parent_id,
+		"genome_generation": genome_generation,
+		"genome_is_elite": genome_is_elite,
+		"genome_is_mutant": genome_is_mutant,
+		"genome_mutation_count": genome_mutation_count,
 		"fitness": fitness,
 		"progress": max_continuous_progress,
 		"checkpoints": valid_checkpoints,

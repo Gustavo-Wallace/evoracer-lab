@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/managers/evolution_manager.gd" id="1_manager"]
+[ext_resource type="Resource" path="res://resources/evolution/default_evolution.tres" id="2_config"]
+
+[node name="EvolutionManager" type="Node" groups=["evolution_manager"]]
+process_mode = 3
+script = ExtResource("1_manager")
+config = ExtResource("2_config")

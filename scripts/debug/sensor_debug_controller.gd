@@ -4,6 +4,7 @@ extends CanvasLayer
 @export var toggle_action: StringName = &"toggle_sensor_debug"
 @export var camera_path := NodePath("../RaceCamera")
 @export var evaluation_manager_path := NodePath("../NeuralEvaluationManager")
+@export var race_manager_path := NodePath("../RaceManager")
 
 var _debug_enabled := false
 var _camera: RaceCamera
@@ -11,6 +12,7 @@ var _target: CarController
 var _active_sensors: VehicleSensors
 var _neural_controller: NeuralCarController
 var _evaluation_manager: NeuralEvaluationManager
+var _race_manager: RaceManager
 
 @onready var panel: PanelContainer = $Layout/SensorPanel
 @onready var title_label: Label = $Layout/SensorPanel/Content/TitleLabel
@@ -29,6 +31,7 @@ func _ready() -> void:
 	_evaluation_manager = get_node_or_null(
 		evaluation_manager_path
 	) as NeuralEvaluationManager
+	_race_manager = get_node_or_null(race_manager_path) as RaceManager
 	panel.visible = false
 	neural_panel.visible = false
 	fitness_panel.visible = false
@@ -118,9 +121,30 @@ func _update_panel() -> void:
 	title_label.text = "SENSOR DEBUG  |  %s  |  [V]" % _target.vehicle_id
 	values_label.text = "\n".join(lines)
 	var surface_value := inputs[inputs.size() - 1]
-	surface_label.text = (
+	var surface_text := (
 		"SURFACE: GRASS" if surface_value >= 0.5 else "SURFACE: ASPHALT"
 	)
+	var official_leader := (
+		_race_manager.get_official_leader()
+		if is_instance_valid(_race_manager)
+		else null
+	)
+	var camera_target := _camera.get_target() if is_instance_valid(_camera) else null
+	var leader_id := (
+		official_leader.vehicle_id if is_instance_valid(official_leader) else "NONE"
+	)
+	var target_id := (
+		camera_target.vehicle_id if is_instance_valid(camera_target) else "NONE"
+	)
+	var sync_state := "N/A"
+	if _camera.view_mode == RaceCamera.ViewMode.LEADER:
+		sync_state = "SYNC" if official_leader == camera_target else "DIVERGED"
+	surface_label.text = "%s   LEADER: %s   CAMERA: %s   %s" % [
+		surface_text,
+		leader_id,
+		target_id,
+		sync_state,
+	]
 
 
 func _update_neural_panel() -> void:

@@ -8,6 +8,8 @@ signal race_started(total_laps: int)
 signal car_finished(car: CarController, position: int, finish_time: float)
 signal race_finished(reason: StringName, elapsed_time: float)
 signal race_mode_changed(neural_evaluation_mode: bool)
+signal official_leader_changed(leader: CarController)
+signal leader_eligibility_changed(car: CarController, is_eligible: bool)
 
 const CAR_SCENE := preload("res://scenes/car/Car.tscn")
 const CarRaceTelemetry := preload("res://scripts/race/car_race_telemetry.gd")
@@ -73,6 +75,10 @@ var _restart_pending := false
 var _neural_seed_batch := 0
 var _neural_evaluation_mode := false
 var _evaluation_agent_count := 12
+var _evaluation_seed_base := -1
+var _evaluation_genomes: Array[NeuralGenome] = []
+var _leader_ineligible_cars: Dictionary = {}
+var _official_leader: CarController
 
 
 func _ready() -> void:
@@ -136,6 +142,33 @@ func get_leader() -> CarController:
 	return _ranked_cars[0] if not _ranked_cars.is_empty() else null
 
 
+func get_official_leader() -> CarController:
+	var first_valid: CarController
+	for car in _ranked_cars:
+		if not is_instance_valid(car) or car.is_queued_for_deletion():
+			continue
+		if first_valid == null:
+			first_valid = car
+		if not _leader_ineligible_cars.has(car):
+			return car
+	# When every competitor has ended, retain the official final-order leader.
+	return first_valid
+
+
+func set_car_leader_eligible(car: CarController, is_eligible: bool) -> void:
+	if car == null:
+		return
+	var was_eligible := not _leader_ineligible_cars.has(car)
+	if is_eligible:
+		_leader_ineligible_cars.erase(car)
+	else:
+		_leader_ineligible_cars[car] = true
+	if was_eligible == is_eligible:
+		return
+	leader_eligibility_changed.emit(car, is_eligible)
+	_refresh_official_leader()
+
+
 func get_car(index: int) -> CarController:
 	if _cars.is_empty():
 		return null
@@ -155,6 +188,15 @@ func get_neural_cars() -> Array[CarController]:
 	for car in _cars:
 		if _neural_controllers_by_car.has(car):
 			result.append(car)
+	return result
+
+
+func get_neural_genome_copies() -> Array[NeuralGenome]:
+	var result: Array[NeuralGenome] = []
+	for car in _cars:
+		var controller := _neural_controllers_by_car.get(car) as NeuralCarController
+		if controller != null and controller.genome != null:
+			result.append(controller.genome.copy_genome())
 	return result
 
 
@@ -244,6 +286,37 @@ func randomize_neural_genomes() -> void:
 
 func start_neural_evaluation(agent_count: int) -> void:
 	_evaluation_agent_count = clampi(agent_count, 2, 24)
+	_evaluation_seed_base = -1
+	_evaluation_genomes.clear()
+	_neural_evaluation_mode = true
+	race_mode_changed.emit(true)
+	restart_race()
+
+
+func start_seeded_neural_evaluation(agent_count: int, seed_base: int) -> void:
+	_evaluation_agent_count = clampi(agent_count, 2, 24)
+	_evaluation_seed_base = seed_base
+	_evaluation_genomes.clear()
+	_neural_evaluation_mode = true
+	race_mode_changed.emit(true)
+	restart_race()
+
+
+func start_neural_evaluation_with_genomes(
+	genomes: Array[NeuralGenome]
+) -> void:
+	if genomes.size() < 2:
+		push_error("A neural evaluation requires at least two genomes.")
+		return
+	_evaluation_genomes.clear()
+	for genome in genomes:
+		if genome == null or not genome.is_valid():
+			push_error("Invalid genome supplied to RaceManager.")
+			_evaluation_genomes.clear()
+			return
+		_evaluation_genomes.append(genome.copy_genome())
+	_evaluation_agent_count = clampi(_evaluation_genomes.size(), 2, 24)
+	_evaluation_seed_base = -1
 	_neural_evaluation_mode = true
 	race_mode_changed.emit(true)
 	restart_race()
@@ -253,6 +326,8 @@ func return_to_standard_mode() -> void:
 	if not _neural_evaluation_mode:
 		return
 	_neural_evaluation_mode = false
+	_evaluation_seed_base = -1
+	_evaluation_genomes.clear()
 	race_mode_changed.emit(false)
 	restart_race()
 
@@ -287,6 +362,8 @@ func _start_race() -> void:
 	_previous_order_index.clear()
 	_confirmed_pair_order.clear()
 	_pair_candidates.clear()
+	_leader_ineligible_cars.clear()
+	_official_leader = null
 	_confirmed_leader = null
 	_leader_candidate = null
 	_leader_candidate_time = 0.0
@@ -358,7 +435,11 @@ func _spawn_cars() -> void:
 			var neural_controller := (
 				NEURAL_CONTROLLER_SCENE.instantiate() as NeuralCarController
 			)
-			neural_controller.genome = _create_neural_genome(car, index)
+			neural_controller.genome = (
+				_evaluation_genomes[index].copy_genome()
+				if _neural_evaluation_mode and index < _evaluation_genomes.size()
+				else _create_neural_genome(car, index)
+			)
 			car.add_child(neural_controller)
 			_neural_controllers_by_car[car] = neural_controller
 		else:
@@ -383,18 +464,23 @@ func _create_neural_genome(car: CarController, car_index: int) -> NeuralGenome:
 	if not neural_network_config.is_valid_for(input_count):
 		push_error("Invalid neural network configuration.")
 		return genome
-	var genome_seed := (
-		neural_network_config.random_seed_base
-		+ _neural_seed_batch * neural_network_config.reroll_seed_stride
-		+ car_index
+	var seed_base := (
+		_evaluation_seed_base
+		if _neural_evaluation_mode and _evaluation_seed_base >= 0
+		else neural_network_config.random_seed_base
 	)
+	var genome_seed := seed_base + car_index
+	if not (_neural_evaluation_mode and _evaluation_seed_base >= 0):
+		genome_seed += (
+			_neural_seed_batch * neural_network_config.reroll_seed_stride
+		)
 	genome.configure_random(
 		input_count,
 		neural_network_config.hidden_neuron_count,
 		neural_network_config.output_neuron_count,
 		genome_seed,
 		neural_network_config.random_weight_scale,
-		"G%02d-%06d" % [car_index + 1, genome_seed]
+		"G001-I%02d-S%d" % [car_index + 1, genome_seed]
 	)
 	return genome
 
@@ -409,12 +495,22 @@ func _update_rankings(stability_delta: float) -> void:
 		if telemetry != null:
 			telemetry.record_position(index + 1, telemetry.is_racing())
 
+	_refresh_official_leader()
+
 	_update_approximate_gaps()
 	if stability_delta > 0.0:
 		_update_overtake_candidates(stability_delta)
 		_update_leader_candidate(stability_delta)
 	_rebuild_previous_order_indices()
 	rankings_updated.emit(get_ranked_cars())
+
+
+func _refresh_official_leader() -> void:
+	var next_leader := get_official_leader()
+	if _official_leader == next_leader:
+		return
+	_official_leader = next_leader
+	official_leader_changed.emit(_official_leader)
 
 
 func _update_continuous_progress() -> void:

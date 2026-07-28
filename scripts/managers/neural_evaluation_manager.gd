@@ -30,6 +30,7 @@ var _track: RaceTrackBase
 var _records_by_car: Dictionary = {}
 var _records: Array[NeuralEvaluationRecord] = []
 var _results: Array[Dictionary] = []
+var _evaluation_paused := false
 
 
 func _ready() -> void:
@@ -45,7 +46,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if state != EvaluationState.RUNNING:
+	if state != EvaluationState.RUNNING or _evaluation_paused:
 		return
 
 	elapsed_time += delta
@@ -72,10 +73,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("start_neural_evaluation") and not event.is_echo():
-		start_evaluation()
-		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("exit_neural_evaluation") and not event.is_echo():
+	if event.is_action_pressed("exit_neural_evaluation") and not event.is_echo():
 		return_to_standard_mode()
 		get_viewport().set_input_as_handled()
 
@@ -89,7 +87,62 @@ func start_evaluation() -> void:
 	_records_by_car.clear()
 	elapsed_time = 0.0
 	_sample_accumulator = 0.0
+	_evaluation_paused = false
 	_race_manager.start_neural_evaluation(fitness_config.agent_count)
+
+
+func start_seeded_evaluation(agent_count: int, seed_base: int) -> void:
+	_prepare_evaluation_start()
+	_race_manager.start_seeded_neural_evaluation(agent_count, seed_base)
+
+
+func start_evaluation_with_genomes(genomes: Array[NeuralGenome]) -> void:
+	_prepare_evaluation_start()
+	_race_manager.start_neural_evaluation_with_genomes(genomes)
+
+
+func set_evaluation_paused(is_paused: bool) -> void:
+	_evaluation_paused = is_paused
+
+
+func is_paused() -> bool:
+	return _evaluation_paused
+
+
+func get_live_fitness_summary() -> Dictionary:
+	var best_fitness := -INF
+	var fitness_sum := 0.0
+	var fitness_count := 0
+	for record in _records:
+		if record == null:
+			continue
+		var telemetry := _race_manager.get_telemetry(record.car)
+		if telemetry != null:
+			record.set_final_position(telemetry.current_position)
+		record.calculate_fitness(fitness_config, _records.size())
+		best_fitness = maxf(best_fitness, record.fitness)
+		fitness_sum += record.fitness
+		fitness_count += 1
+	return {
+		"active_agents": get_active_agent_count(),
+		"total_agents": _records.size(),
+		"best_fitness": best_fitness if fitness_count > 0 else 0.0,
+		"average_fitness": (
+			fitness_sum / float(fitness_count) if fitness_count > 0 else 0.0
+		),
+	}
+
+
+func _prepare_evaluation_start() -> void:
+	if _race_manager == null or fitness_config == null:
+		return
+	state = EvaluationState.WAITING_FOR_SPAWN
+	_results.clear()
+	_records.clear()
+	_records_by_car.clear()
+	elapsed_time = 0.0
+	_sample_accumulator = 0.0
+	_evaluation_paused = false
 
 
 func return_to_standard_mode() -> void:
@@ -102,6 +155,7 @@ func return_to_standard_mode() -> void:
 	_results.clear()
 	_records.clear()
 	_records_by_car.clear()
+	_evaluation_paused = false
 	_race_manager.return_to_standard_mode()
 	evaluation_cancelled.emit()
 
@@ -224,6 +278,7 @@ func _end_agent(record: NeuralEvaluationRecord, reason: StringName) -> void:
 		return
 	record.terminate(reason, elapsed_time)
 	if is_instance_valid(record.car):
+		_race_manager.set_car_leader_eligible(record.car, reason == &"FINISHED")
 		record.car.set_control_inputs(0.0, 0.0)
 		record.car.reset_motion()
 		record.car.process_mode = Node.PROCESS_MODE_DISABLED

@@ -50,7 +50,10 @@ func _process(delta: float) -> void:
 
 	if not is_instance_valid(_race_manager) or not is_instance_valid(_track):
 		_find_dependencies()
-	_update_target_for_mode()
+	if view_mode == ViewMode.LEADER:
+		_synchronize_leader_target()
+	elif not is_instance_valid(_target):
+		_update_target_for_mode()
 
 	if not _initialized:
 		_snap_to_current_view()
@@ -196,7 +199,7 @@ func _update_target_for_mode(force_signal: bool = false) -> void:
 		ViewMode.SELECTED:
 			desired_target = _race_manager.get_car(_selected_index)
 		ViewMode.LEADER:
-			desired_target = _race_manager.get_leader()
+			desired_target = _race_manager.get_official_leader()
 		ViewMode.RANDOM:
 			if not is_instance_valid(_random_target):
 				choose_random_target()
@@ -209,6 +212,8 @@ func _update_target_for_mode(force_signal: bool = false) -> void:
 
 
 func _set_target_internal(candidate: CarController, force_signal: bool = false) -> void:
+	if candidate != null and not is_instance_valid(candidate):
+		candidate = null
 	var changed := _target != candidate
 	_target = candidate
 	if changed or force_signal:
@@ -218,12 +223,85 @@ func _set_target_internal(candidate: CarController, force_signal: bool = false) 
 func _find_dependencies() -> void:
 	for candidate in get_tree().get_nodes_in_group(manager_group):
 		if candidate is RaceManager:
-			_race_manager = candidate
+			_bind_race_manager(candidate as RaceManager)
 			break
 	for candidate in get_tree().get_nodes_in_group(track_group):
 		if candidate is RaceTrackBase:
 			_track = candidate
 			break
+
+
+func _bind_race_manager(manager: RaceManager) -> void:
+	if _race_manager == manager:
+		return
+	_race_manager = manager
+	if not _race_manager.rankings_updated.is_connected(_on_rankings_updated):
+		_race_manager.rankings_updated.connect(_on_rankings_updated)
+	if not _race_manager.official_leader_changed.is_connected(
+		_on_official_leader_changed
+	):
+		_race_manager.official_leader_changed.connect(
+			_on_official_leader_changed
+		)
+	if not _race_manager.leader_eligibility_changed.is_connected(
+		_on_leader_eligibility_changed
+	):
+		_race_manager.leader_eligibility_changed.connect(
+			_on_leader_eligibility_changed
+		)
+	if not _race_manager.cars_spawned.is_connected(_on_cars_spawned):
+		_race_manager.cars_spawned.connect(_on_cars_spawned)
+	if not _race_manager.car_finished.is_connected(_on_car_finished):
+		_race_manager.car_finished.connect(_on_car_finished)
+	if not _race_manager.race_started.is_connected(_on_race_started):
+		_race_manager.race_started.connect(_on_race_started)
+
+
+func _synchronize_leader_target(force_signal: bool = false) -> void:
+	if view_mode != ViewMode.LEADER or not is_instance_valid(_race_manager):
+		return
+	# Always take the live object reference from the authoritative manager.
+	_set_target_internal(
+		_race_manager.get_official_leader(),
+		force_signal
+	)
+
+
+func _on_rankings_updated(_ranked_cars: Array[CarController]) -> void:
+	_synchronize_leader_target()
+
+
+func _on_official_leader_changed(_leader: CarController) -> void:
+	_synchronize_leader_target()
+
+
+func _on_leader_eligibility_changed(
+	_car: CarController,
+	_is_eligible: bool
+) -> void:
+	_synchronize_leader_target()
+
+
+func _on_cars_spawned(_cars: Array[CarController]) -> void:
+	_random_target = null
+	_selected_index = 0
+	if view_mode == ViewMode.LEADER:
+		_synchronize_leader_target(true)
+	else:
+		_update_target_for_mode(true)
+
+
+func _on_car_finished(
+	_car: CarController,
+	_position: int,
+	_finish_time: float
+) -> void:
+	_synchronize_leader_target()
+
+
+func _on_race_started(_total_laps: int) -> void:
+	if view_mode == ViewMode.LEADER:
+		_synchronize_leader_target(true)
 
 
 func _snap_to_current_view() -> void:
