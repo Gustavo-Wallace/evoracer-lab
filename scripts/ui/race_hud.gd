@@ -60,10 +60,18 @@ func set_race_progress(
 	]
 
 
-func set_lap_timing(lap_time: float, _time_since_last_progress: float) -> void:
+func set_lap_timing(
+	lap_time: float,
+	_time_since_last_progress: float,
+	is_final_time: bool = false
+) -> void:
 	var minutes := floori(lap_time / 60.0)
 	var seconds := fmod(lap_time, 60.0)
-	lap_time_label.text = "TIME %02d:%05.2f" % [minutes, seconds]
+	lap_time_label.text = "%s %02d:%05.2f" % [
+		"LAST" if is_final_time else "TIME",
+		minutes,
+		seconds,
+	]
 
 
 func set_spectator_info(

@@ -8,6 +8,7 @@ var active := true
 var end_reason: StringName = &"RUNNING"
 var elapsed_time := 0.0
 var end_time := 0.0
+var total_race_time := 0.0
 
 var max_continuous_progress := 0.0
 var valid_checkpoints := 0
@@ -22,6 +23,8 @@ var useful_speed_integral := 0.0
 var sampled_time := 0.0
 var asphalt_time := 0.0
 var grass_time := 0.0
+var grass_penalty_time := 0.0
+var grass_streak := 0.0
 var stationary_time := 0.0
 var wrong_direction_time := 0.0
 var barrier_contact_time := 0.0
@@ -31,6 +34,12 @@ var spinning_time := 0.0
 var stationary_streak := 0.0
 var wrong_direction_streak := 0.0
 var lap_times := PackedFloat32Array()
+var maximum_progress_jump := 0.0
+var invalid_course_warning := false
+var rejected_by_order := 0
+var rejected_by_direction := 0
+var rejected_by_timing := 0
+var rejected_by_route := 0
 
 var fitness := 0.0
 var fitness_components: Dictionary = {}
@@ -72,13 +81,17 @@ func sample(
 	var speed_kmh := car.get_speed_kmh()
 	speed_integral += speed_kmh * delta
 	var useful_ratio := clampf(forward_alignment, 0.0, 1.0)
-	if car.current_speed > 0.0:
+	if car.current_speed > 0.0 and is_on_asphalt:
 		useful_speed_integral += speed_kmh * useful_ratio * delta
 
 	if is_on_asphalt:
 		asphalt_time += delta
+		grass_streak = 0.0
 	else:
 		grass_time += delta
+		grass_streak += delta
+		if grass_streak > config.grass_penalty_grace:
+			grass_penalty_time += delta
 
 	if evaluation_time >= config.initial_grace_time:
 		if absf(car.current_speed) < config.stationary_speed_threshold:
@@ -106,10 +119,23 @@ func sample(
 
 	if progress != null:
 		valid_checkpoints = maxi(valid_checkpoints, progress.total_checkpoints_passed)
+		maximum_progress_jump = maxf(
+			maximum_progress_jump,
+			progress.maximum_progress_jump
+		)
+		invalid_course_warning = (
+			invalid_course_warning
+			or progress.invalid_course_warning
+		)
+		rejected_by_order = progress.rejected_by_order
+		rejected_by_direction = progress.rejected_by_direction
+		rejected_by_timing = progress.rejected_by_timing
+		rejected_by_route = progress.rejected_by_route
 		if progress.time_since_last_progress > config.no_progress_penalty_grace:
 			no_progress_penalty_time += delta
 
 	if telemetry != null:
+		total_race_time = telemetry.total_race_time
 		max_continuous_progress = maxf(
 			max_continuous_progress,
 			telemetry.continuous_progress
@@ -154,6 +180,11 @@ func set_final_position(position: int) -> void:
 
 
 func calculate_fitness(config: NeuralFitnessConfig, participant_count: int) -> float:
+	if (
+		completed_laps > 0
+		and get_asphalt_ratio() < config.invalid_course_asphalt_ratio_threshold
+	):
+		invalid_course_warning = true
 	var pace_bonus := 0.0
 	for lap_time in lap_times:
 		pace_bonus += minf(
@@ -163,20 +194,32 @@ func calculate_fitness(config: NeuralFitnessConfig, participant_count: int) -> f
 		)
 
 	var average_useful_speed := get_average_useful_speed_kmh()
+	var progress_gate := clampf(
+		float(valid_checkpoints)
+		/ float(maxi(config.secondary_bonus_checkpoint_requirement, 1)),
+		0.0,
+		1.0
+	)
+	var secondary_gate := progress_gate * get_asphalt_ratio()
 	var useful_speed_bonus := (
 		clampf(average_useful_speed / _maximum_speed_kmh, 0.0, 1.0)
 		* config.useful_speed_weight
+		* progress_gate
 	)
-	var asphalt_bonus := get_asphalt_ratio() * config.asphalt_ratio_weight
+	var asphalt_bonus := (
+		get_asphalt_ratio()
+		* config.asphalt_ratio_weight
+		* progress_gate
+	)
 	var best_position_bonus := _position_bonus(
 		best_position,
 		participant_count,
-		config.best_position_weight
+		config.best_position_weight * secondary_gate
 	)
 	var final_position_bonus := _position_bonus(
 		final_position,
 		participant_count,
-		config.final_position_weight
+		config.final_position_weight * secondary_gate
 	)
 
 	fitness_components = {
@@ -189,11 +232,11 @@ func calculate_fitness(config: NeuralFitnessConfig, participant_count: int) -> f
 		"asphalt": asphalt_bonus,
 		"best_position": best_position_bonus,
 		"final_position": final_position_bonus,
-		"leader_time": leader_time * config.leader_second_weight,
-		"overtakes": float(overtakes) * config.overtake_weight,
+		"leader_time": leader_time * config.leader_second_weight * secondary_gate,
+		"overtakes": float(overtakes) * config.overtake_weight * secondary_gate,
 		"stationary_penalty": -stationary_time * config.stationary_second_penalty,
 		"wrong_way_penalty": -wrong_direction_time * config.wrong_direction_second_penalty,
-		"grass_penalty": -grass_time * config.grass_second_penalty,
+		"grass_penalty": -grass_penalty_time * config.grass_second_penalty,
 		"barrier_penalty": -(
 			float(barrier_contacts) * config.barrier_contact_penalty
 			+ barrier_contact_time * config.barrier_second_penalty
@@ -243,10 +286,19 @@ func get_result_snapshot(fitness_rank: int) -> Dictionary:
 		"laps": completed_laps,
 		"average_speed_kmh": get_average_speed_kmh(),
 		"asphalt_ratio": get_asphalt_ratio(),
+		"grass_ratio": get_grass_ratio(),
 		"final_position": final_position,
 		"overtakes": overtakes,
 		"end_reason": String(end_reason),
 		"end_time": end_time,
+		"total_time": total_race_time if total_race_time > 0.0 else end_time,
+		"lap_times": lap_times.duplicate(),
+		"maximum_progress_jump": maximum_progress_jump,
+		"invalid_course_warning": invalid_course_warning,
+		"rejected_by_order": rejected_by_order,
+		"rejected_by_direction": rejected_by_direction,
+		"rejected_by_timing": rejected_by_timing,
+		"rejected_by_route": rejected_by_route,
 		"components": fitness_components.duplicate(true),
 	}
 
@@ -256,3 +308,7 @@ func _position_bonus(position: int, participant_count: int, weight: float) -> fl
 		return 0.0
 	var ratio := float(participant_count - position) / float(participant_count - 1)
 	return clampf(ratio, 0.0, 1.0) * weight
+
+
+func get_grass_ratio() -> float:
+	return grass_time / sampled_time if sampled_time > 0.0 else 0.0

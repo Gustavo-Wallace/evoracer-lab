@@ -431,11 +431,7 @@ func _update_continuous_progress() -> void:
 		if telemetry.state == CarRaceTelemetry.RaceState.ABANDONED:
 			continue
 
-		telemetry.segment_progress = _track.get_checkpoint_segment_progress(
-			car.global_position,
-			progress.current_checkpoint,
-			progress.get_next_checkpoint()
-		)
+		telemetry.segment_progress = progress.get_intermediate_progress()
 		telemetry.continuous_progress = (
 			float(telemetry.completed_laps * checkpoint_count)
 			+ float(progress.current_checkpoint)
@@ -614,6 +610,9 @@ func _on_lap_completed(
 		)
 
 	if completed_lap >= total_laps:
+		var progress := get_progress_tracker(car)
+		if progress != null:
+			progress.freeze_timing()
 		_finish_order.append(car)
 		var finish_position := _finish_order.size()
 		telemetry.mark_finished(finish_position, _race_elapsed_time)
@@ -636,6 +635,10 @@ func _on_lap_completed(
 func _end_race(reason: StringName) -> void:
 	if not _race_active:
 		return
+	for car in _cars:
+		var progress := get_progress_tracker(car)
+		if progress != null:
+			progress.freeze_timing()
 	if reason == &"TIME_LIMIT" or reason == &"EVALUATION_COMPLETE":
 		_update_rankings(0.0)
 		var next_position := _finish_order.size() + 1

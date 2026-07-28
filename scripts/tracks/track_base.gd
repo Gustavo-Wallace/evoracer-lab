@@ -53,6 +53,7 @@ var _checkpoints: Array[RaceCheckpoint] = []
 var _checkpoint_sample_indices := PackedInt32Array()
 var _circuit_length := 0.0
 var _debug_checkpoints_visible := false
+var _checkpoint_layout_warnings := PackedStringArray()
 
 
 func _ready() -> void:
@@ -129,13 +130,31 @@ func get_checkpoint_segment_progress(
 	last_checkpoint: int,
 	next_checkpoint: int
 ) -> float:
+	var projection := get_checkpoint_segment_projection(
+		world_position,
+		last_checkpoint,
+		next_checkpoint
+	)
+	return float(projection["progress"])
+
+
+func get_checkpoint_segment_projection(
+	world_position: Vector2,
+	last_checkpoint: int,
+	next_checkpoint: int
+) -> Dictionary:
 	if (
 		last_checkpoint < 0
 		or next_checkpoint < 0
 		or last_checkpoint >= _checkpoint_sample_indices.size()
 		or next_checkpoint >= _checkpoint_sample_indices.size()
 	):
-		return 0.0
+		return {
+			"progress": 0.0,
+			"lateral_distance": INF,
+			"path_distance": 0.0,
+			"segment_length": 0.0,
+		}
 
 	var target := to_local(world_position)
 	var start_index := _checkpoint_sample_indices[last_checkpoint]
@@ -171,8 +190,22 @@ func get_checkpoint_segment_progress(
 		visited_segments += 1
 
 	if accumulated_distance <= 0.001:
-		return 0.0
-	return clampf(best_path_distance / accumulated_distance, 0.0, 1.0)
+		return {
+			"progress": 0.0,
+			"lateral_distance": sqrt(best_distance_squared),
+			"path_distance": 0.0,
+			"segment_length": accumulated_distance,
+		}
+	return {
+		"progress": clampf(best_path_distance / accumulated_distance, 0.0, 1.0),
+		"lateral_distance": sqrt(best_distance_squared),
+		"path_distance": best_path_distance,
+		"segment_length": accumulated_distance,
+	}
+
+
+func get_checkpoint_layout_warnings() -> PackedStringArray:
+	return _checkpoint_layout_warnings.duplicate()
 
 
 func get_racing_line_points() -> PackedVector2Array:
@@ -219,7 +252,11 @@ func register_car(car: Node2D) -> void:
 
 	for child in car.get_children():
 		if child is RaceProgressTracker and not child.is_configured():
-			child.configure(_checkpoints.size(), _checkpoints[0].global_transform)
+			child.configure(
+				_checkpoints.size(),
+				_checkpoints[0].global_transform,
+				self
+			)
 			return
 
 
@@ -469,6 +506,39 @@ func _create_checkpoints() -> void:
 		)
 		checkpoint.set_debug_visible(_debug_checkpoints_visible)
 		_checkpoints.append(checkpoint)
+	_audit_checkpoint_layout()
+
+
+func _audit_checkpoint_layout() -> void:
+	_checkpoint_layout_warnings.clear()
+	for first_index in range(_checkpoints.size()):
+		var first_polygon := _get_checkpoint_polygon(_checkpoints[first_index])
+		for second_index in range(first_index + 1, _checkpoints.size()):
+			var second_polygon := _get_checkpoint_polygon(_checkpoints[second_index])
+			if not Geometry2D.intersect_polygons(
+				first_polygon,
+				second_polygon
+			).is_empty():
+				var warning := "Checkpoint %02d overlaps checkpoint %02d" % [
+					first_index,
+					second_index,
+				]
+				_checkpoint_layout_warnings.append(warning)
+				push_warning("Track '%s': %s" % [track_id, warning])
+
+
+func _get_checkpoint_polygon(checkpoint: RaceCheckpoint) -> PackedVector2Array:
+	var rectangle := checkpoint.collision_shape.shape as RectangleShape2D
+	if rectangle == null:
+		return PackedVector2Array()
+	var half_size := rectangle.size * 0.5
+	var shape_transform := checkpoint.collision_shape.global_transform
+	return PackedVector2Array([
+		shape_transform * Vector2(-half_size.x, -half_size.y),
+		shape_transform * Vector2(half_size.x, -half_size.y),
+		shape_transform * Vector2(half_size.x, half_size.y),
+		shape_transform * Vector2(-half_size.x, half_size.y),
+	])
 
 
 func _sort_checkpoint_markers(first: Marker2D, second: Marker2D) -> bool:

@@ -32,7 +32,16 @@ func _process(_delta: float) -> void:
 		progress.get_total_progress(),
 		race_manager.get_total_laps()
 	)
-	hud.set_lap_timing(progress.lap_time, progress.time_since_last_progress)
+	var telemetry := race_manager.get_telemetry(target)
+	var has_finished := (
+		telemetry != null
+		and telemetry.state == CarRaceTelemetry.RaceState.FINISHED
+	)
+	hud.set_lap_timing(
+		progress.get_display_lap_time(),
+		progress.time_since_last_progress,
+		has_finished
+	)
 	hud.set_spectator_info(
 		race_camera.get_mode_label(),
 		target.vehicle_id,

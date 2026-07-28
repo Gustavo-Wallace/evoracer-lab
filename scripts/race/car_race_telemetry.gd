@@ -18,6 +18,7 @@ var time_in_first_place := 0.0
 var completed_laps := 0
 var best_lap := 0.0
 var last_lap := 0.0
+var lap_times := PackedFloat32Array()
 var total_race_time := 0.0
 var state := RaceState.RACING
 var finish_position := 0
@@ -52,6 +53,7 @@ func record_position(position: int, include_in_average: bool = true) -> void:
 func record_lap(lap_time: float) -> bool:
 	completed_laps += 1
 	last_lap = lap_time
+	lap_times.append(lap_time)
 	var is_new_best := best_lap <= 0.0 or lap_time < best_lap
 	if is_new_best:
 		best_lap = lap_time
@@ -106,6 +108,7 @@ func get_metrics_snapshot() -> Dictionary:
 		"completed_laps": completed_laps,
 		"best_lap": best_lap,
 		"last_lap": last_lap,
+		"lap_times": lap_times.duplicate(),
 		"total_race_time": total_race_time,
 		"state": get_state_label(),
 		"finish_position": finish_position,

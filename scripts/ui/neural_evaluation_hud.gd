@@ -86,7 +86,7 @@ func _update_results_table() -> void:
 	var lines := PackedStringArray()
 	for result in _results:
 		var agent_id := String(result["agent_id"])
-		var line := "%02d  %-9s %9.0f  %6.2f  %3d  %2d  %6.1f  %5.1f%%  P%02d  %3d  %-15s" % [
+		var line := "%02d  %-9s FIT %9.0f  PROG %6.2f  CP %3d  LAP %d  AVG %5.1f  ROAD %5.1f%%  GRASS %5.1f%%  P%02d  OVT %2d" % [
 			int(result["fitness_rank"]),
 			agent_id,
 			float(result["fitness"]),
@@ -95,9 +95,9 @@ func _update_results_table() -> void:
 			int(result["laps"]),
 			float(result["average_speed_kmh"]),
 			float(result["asphalt_ratio"]) * 100.0,
+			float(result["grass_ratio"]) * 100.0,
 			int(result["final_position"]),
 			int(result["overtakes"]),
-			String(result["end_reason"]),
 		]
 		if agent_id == followed_id:
 			line = "[color=#ffd45e]>%s[/color]" % line
@@ -106,5 +106,31 @@ func _update_results_table() -> void:
 		else:
 			line = " %s" % line
 		lines.append(line)
+		lines.append(
+			"    JUMP %.3f  REJECT D/O/T/R %d/%d/%d/%d  INVALID %s  TOTAL %s  LAPS %s  END %s" % [
+				float(result["maximum_progress_jump"]),
+				int(result["rejected_by_direction"]),
+				int(result["rejected_by_order"]),
+				int(result["rejected_by_timing"]),
+				int(result["rejected_by_route"]),
+				"YES" if bool(result["invalid_course_warning"]) else "NO",
+				_format_time(float(result["total_time"])),
+				_format_lap_times(result["lap_times"] as PackedFloat32Array),
+				String(result["end_reason"]),
+			]
+		)
 	title_label.text = "NEURAL FITNESS RESULTS  ·  %d AGENTS  ·  [H] HIDE" % _results.size()
 	rows.text = "\n".join(lines)
+
+
+func _format_lap_times(lap_times: PackedFloat32Array) -> String:
+	if lap_times.is_empty():
+		return "--"
+	var values := PackedStringArray()
+	for lap_time in lap_times:
+		values.append(_format_time(lap_time))
+	return "/".join(values)
+
+
+func _format_time(value: float) -> String:
+	return "%02d:%04.1f" % [floori(value / 60.0), fmod(value, 60.0)]

@@ -5,6 +5,7 @@ extends Resource
 @export_range(2, 24, 1) var agent_count := 12
 @export_range(10.0, 1800.0, 5.0) var maximum_duration := 120.0
 @export_range(0.05, 1.0, 0.05) var sample_interval := 0.1
+@export_range(0.0, 1.0, 0.05) var invalid_course_asphalt_ratio_threshold := 0.25
 
 @export_category("Termination")
 @export_range(0.0, 30.0, 0.5) var initial_grace_time := 4.0
@@ -26,6 +27,7 @@ extends Resource
 @export var fast_lap_bonus_limit := 15000.0
 
 @export_category("Secondary Bonuses")
+@export_range(1, 12, 1) var secondary_bonus_checkpoint_requirement := 2
 @export var useful_speed_weight := 3000.0
 @export var asphalt_ratio_weight := 2500.0
 @export var best_position_weight := 1000.0
@@ -36,7 +38,8 @@ extends Resource
 @export_category("Penalties")
 @export var stationary_second_penalty := 120.0
 @export var wrong_direction_second_penalty := 300.0
-@export var grass_second_penalty := 60.0
+@export_range(0.0, 10.0, 0.25) var grass_penalty_grace := 2.0
+@export var grass_second_penalty := 100.0
 @export var barrier_contact_penalty := 250.0
 @export var barrier_second_penalty := 80.0
 @export_range(0.0, 30.0, 0.5) var no_progress_penalty_grace := 4.0

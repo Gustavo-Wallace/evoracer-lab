@@ -89,14 +89,14 @@ layout_mode = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.84, 0.79, 0.63, 1)
 theme_override_font_sizes/font_size = 10
-text = "RK  AGENT       FITNESS   PROGR    CP LAP  AVG KMH  ROAD    FINAL OVT  END REASON"
+text = "RK  AGENT      FITNESS / VALID PROGRESS / SURFACE / RACE DIAGNOSTICS"
 
 [node name="Rows" type="RichTextLabel" parent="Layout/ResultsPanel/Content"]
 custom_minimum_size = Vector2(1100, 350)
 layout_mode = 2
 mouse_filter = 2
 theme_override_colors/default_color = Color(0.94, 0.91, 0.76, 1)
-theme_override_font_sizes/normal_font_size = 10
+theme_override_font_sizes/normal_font_size = 8
 bbcode_enabled = true
 text = "01  AGENT-01    000000   0.00   0  0   0.0  100.0%  P01   0  RUNNING"
 fit_content = true

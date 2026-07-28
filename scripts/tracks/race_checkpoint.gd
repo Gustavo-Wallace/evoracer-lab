@@ -14,6 +14,7 @@ var _lateral_offset := 0.0
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
+	body_exited.connect(_on_body_exited)
 
 
 func configure(
@@ -76,8 +77,29 @@ func _draw() -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if not body.is_in_group("race_cars"):
 		return
+	var moving_body := body as CharacterBody2D
+	if moving_body == null:
+		return
+	var checkpoint_forward := -global_transform.y.normalized()
+	var forward_crossing_speed: float = moving_body.velocity.dot(checkpoint_forward)
+	var local_entry_position := to_local(moving_body.global_position)
+	var entered_from_correct_side := local_entry_position.y >= -_checkpoint_depth * 0.15
 
 	for child in body.get_children():
 		if child is RaceProgressTracker:
-			child.try_validate_checkpoint(checkpoint_index, global_transform)
+			child.try_validate_checkpoint(
+				checkpoint_index,
+				global_transform,
+				forward_crossing_speed,
+				entered_from_correct_side
+			)
+			return
+
+
+func _on_body_exited(body: Node2D) -> void:
+	if not body.is_in_group("race_cars"):
+		return
+	for child in body.get_children():
+		if child is RaceProgressTracker:
+			child.notify_checkpoint_exit(checkpoint_index)
 			return
