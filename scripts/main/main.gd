@@ -33,7 +33,8 @@ func _process(_delta: float) -> void:
 		race_camera.get_mode_label(),
 		target.vehicle_id,
 		race_manager.get_position_for_car(target),
-		race_manager.get_car_count()
+		race_manager.get_car_count(),
+		target.get_controller_code()
 	)
 
 

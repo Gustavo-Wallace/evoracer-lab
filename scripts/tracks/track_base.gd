@@ -451,12 +451,21 @@ func _create_checkpoints() -> void:
 		checkpoint_container.add_child(checkpoint)
 		var local_anchor := to_local(marker.global_position)
 		_checkpoint_sample_indices.append(_find_closest_sample(local_anchor))
+		var checkpoint_width := float(marker.get_meta(
+			&"checkpoint_width_override",
+			_track_width + _grass_runoff_width * 2.0
+		))
+		var checkpoint_lateral_offset := float(marker.get_meta(
+			&"checkpoint_lateral_offset",
+			0.0
+		))
 		checkpoint.configure(
 			index,
 			markers.size(),
 			_get_centerline_transform(local_anchor),
-			_track_width + _grass_runoff_width * 2.0,
-			reference_vehicle.body_length * 1.5
+			checkpoint_width,
+			reference_vehicle.body_length * 1.5,
+			checkpoint_lateral_offset
 		)
 		checkpoint.set_debug_visible(_debug_checkpoints_visible)
 		_checkpoints.append(checkpoint)

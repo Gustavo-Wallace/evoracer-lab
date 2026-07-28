@@ -1,16 +1,16 @@
 # EVO RACER LAB
 
-Simulação de corrida 2D vista de cima criada no Godot 4.7. A base atual oferece direção manual, visual arcade retrô e uma estrutura reutilizável de circuitos; futuramente, o laboratório terá múltiplas pistas e treinamento evolutivo de agentes.
+Simulação de corrida 2D vista de cima criada no Godot 4.7. O projeto combina física arcade retrô, pistas reutilizáveis, sensores, telemetria competitiva e uma primeira rede neural feedforward. A base seguirá evoluindo para múltiplas pistas e treinamento evolutivo de agentes.
 
 ## Executar
 
-1. Abra a pasta no Godot 4.7 e execute o projeto com **F6/F5**.
-2. Use **W/S** para acelerar, frear ou engatar a ré.
-3. Use **A/D** para esterçar.
-4. Pressione **C** para alternar entre câmera de acompanhamento e visão geral.
-5. Pressione **P** para mostrar ou esconder checkpoints de depuração.
-6. Pressione **R** para retornar ao último checkpoint válido.
-7. Use **1/2/3/4** para câmera selecionada, líder, aleatória ou visão geral.
-8. Use **Q/E** para trocar o carro selecionado, **G** para outro aleatório e **M** para voltar ao carro manual.
+Abra a pasta no Godot 4.7 e execute a cena principal com **F6/F5**.
 
-Nesta etapa não há IA, sensores, checkpoints, população ou algoritmo genético.
+- **W/S/A/D**: dirigir o carro manual.
+- **1/2/3/4**: câmera selecionada, líder, aleatória ou visão geral.
+- **Q/E**, **G**, **M**: trocar alvo, sortear alvo e voltar ao manual.
+- **V**: sensores e telemetria neural do carro acompanhado.
+- **K**: gerar novos pesos e reposicionar os agentes neurais.
+- **L**, **P**, **R**, **N**: classificação, checkpoints, respawn manual e nova corrida.
+
+Ainda não há algoritmo genético, fitness, seleção, mutação ou gerações automáticas.

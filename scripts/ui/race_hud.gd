@@ -65,11 +65,13 @@ func set_spectator_info(
 	mode_name: String,
 	vehicle_id: String,
 	race_position: int,
-	car_count: int
+	car_count: int,
+	controller_code := "?"
 ) -> void:
-	spectator_label.text = "%s | %s | P%02d/%02d" % [
+	spectator_label.text = "%s | %s[%s] | P%02d/%02d" % [
 		mode_name,
 		vehicle_id,
+		controller_code,
 		race_position,
 		car_count,
 	]
@@ -80,6 +82,7 @@ func set_leaderboard(entries: Array[Dictionary], followed_vehicle_id: String) ->
 	for entry in entries:
 		var position := int(entry["position"])
 		var vehicle_id := String(entry["vehicle_id"])
+		var controller := String(entry.get("controller", "?"))
 		var state := String(entry["state"])
 		var lap := int(entry["lap"])
 		var lap_count := int(entry["total_laps"])
@@ -89,10 +92,10 @@ func set_leaderboard(entries: Array[Dictionary], followed_vehicle_id: String) ->
 			lap_text = "DNF"
 		var gap_text := "--" if position == 1 else "+%.1fs" % gap
 		var marker := ">" if vehicle_id == followed_vehicle_id else " "
-		var line := "%s %02d  %-7s  %-5s  %s" % [
+		var line := "%s %02d  %-10s  %-5s  %s" % [
 			marker,
 			position,
-			vehicle_id,
+			"%s[%s]" % [vehicle_id, controller],
 			lap_text,
 			gap_text,
 		]

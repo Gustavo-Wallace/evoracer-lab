@@ -30,6 +30,8 @@ signal speed_changed(speed_kmh: float)
 @export var vehicle_id := "CAR-01"
 @export var manual_control_enabled := true
 
+var controller_kind: StringName = &"MANUAL"
+
 var current_speed := 0.0
 var current_steer_rate := 0.0
 var barrier_contact_time := 0.0
@@ -38,6 +40,7 @@ var _requested_steering := 0.0
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var body_visual: Polygon2D = $Body
+@onready var center_stripe: Polygon2D = $CenterStripe
 @onready var surface_handler: VehicleSurfaceHandler = $VehicleSurface
 @onready var vehicle_sensors: VehicleSensors = $VehicleSensors
 
@@ -50,6 +53,7 @@ func _ready() -> void:
 	var rectangle := collision_shape.shape as RectangleShape2D
 	if rectangle != null:
 		rectangle.size = Vector2(dimensions.body_width, dimensions.body_length)
+	_update_controller_marker()
 
 
 func _physics_process(delta: float) -> void:
@@ -98,12 +102,38 @@ func set_vehicle_identity(identifier: String, body_color: Color) -> void:
 	body_visual.color = body_color
 
 
+func set_controller_kind(kind: StringName) -> void:
+	controller_kind = kind
+	if is_node_ready():
+		_update_controller_marker()
+
+
+func get_controller_code() -> String:
+	match controller_kind:
+		&"NEURAL":
+			return "N"
+		&"TEMPORARY":
+			return "T"
+		_:
+			return "M"
+
+
 func reset_motion() -> void:
 	current_speed = 0.0
 	current_steer_rate = 0.0
 	barrier_contact_time = 0.0
 	velocity = Vector2.ZERO
 	speed_changed.emit(0.0)
+
+
+func _update_controller_marker() -> void:
+	match controller_kind:
+		&"NEURAL":
+			center_stripe.color = Color("b889e8")
+		&"TEMPORARY":
+			center_stripe.color = Color("79c9d4")
+		_:
+			center_stripe.color = Color("ffbd33")
 
 
 func _update_speed(throttle: float, surface: SurfaceProfile, delta: float) -> void:

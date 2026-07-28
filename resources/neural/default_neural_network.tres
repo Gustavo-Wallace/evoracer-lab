@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="NeuralNetworkConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/neural/neural_network_config.gd" id="1_config"]
+
+[resource]
+script = ExtResource("1_config")
+hidden_neuron_count = 12
+output_neuron_count = 3
+random_seed_base = 47001
+random_weight_scale = 1.0
+reroll_seed_stride = 1000

@@ -29,7 +29,9 @@ position = Vector2(3500, 1600)
 position = Vector2(3420, 1120)
 
 [node name="Checkpoint04" type="Marker2D" parent="." index="13" unique_id=1172510916 groups=["track_checkpoint_markers"]]
-position = Vector2(3140, 840)
+position = Vector2(3200, 750)
+metadata/checkpoint_width_override = 520.0
+metadata/checkpoint_lateral_offset = -49.0
 
 [node name="Checkpoint05" type="Marker2D" parent="." index="14" unique_id=333434026 groups=["track_checkpoint_markers"]]
 position = Vector2(2980, 500)
@@ -44,7 +46,7 @@ position = Vector2(1600, 560)
 position = Vector2(700, 560)
 
 [node name="Checkpoint09" type="Marker2D" parent="." index="18" unique_id=1042461456 groups=["track_checkpoint_markers"]]
-position = Vector2(350, 650)
+position = Vector2(220, 800)
 
 [node name="Checkpoint10" type="Marker2D" parent="." index="19" unique_id=2090101611 groups=["track_checkpoint_markers"]]
 position = Vector2(180, 1200)

@@ -13,6 +13,9 @@ const CarRaceTelemetry := preload("res://scripts/race/car_race_telemetry.gd")
 const TEMPORARY_CONTROLLER_SCENE := preload(
 	"res://scenes/controllers/TemporaryLineFollower.tscn"
 )
+const NEURAL_CONTROLLER_SCENE := preload(
+	"res://scenes/controllers/NeuralCarController.tscn"
+)
 const CAR_COLORS: Array[Color] = [
 	Color("1480b8"),
 	Color("d94a3a"),
@@ -38,8 +41,12 @@ const SPEED_FACTORS := [
 
 @export_category("Classification")
 @export_range(2, 24, 1) var car_count := 12
+@export_range(0, 12, 1) var neural_car_count := 3
 @export_range(0.05, 1.0, 0.05) var ranking_refresh_interval := 0.1
 @export_range(0.2, 3.0, 0.05) var overtake_stability_time := 0.75
+
+@export_category("Neural Test Agents")
+@export var neural_network_config: NeuralNetworkConfig
 
 @onready var cars_container: Node2D = $Cars
 
@@ -50,6 +57,7 @@ var _ranked_cars: Array[CarController] = []
 var _finish_order: Array[CarController] = []
 var _telemetry_by_car: Dictionary = {}
 var _progress_by_car: Dictionary = {}
+var _neural_controllers_by_car: Dictionary = {}
 var _previous_order_index: Dictionary = {}
 var _confirmed_pair_order: Dictionary = {}
 var _pair_candidates: Dictionary = {}
@@ -61,6 +69,7 @@ var _race_elapsed_time := 0.0
 var _race_best_lap := 0.0
 var _race_active := false
 var _restart_pending := false
+var _neural_seed_batch := 0
 
 
 func _ready() -> void:
@@ -99,6 +108,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("restart_race") and not event.is_echo():
 		restart_race()
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("randomize_neural_genomes") and not event.is_echo():
+		randomize_neural_genomes()
+		get_viewport().set_input_as_handled()
 
 
 func get_cars() -> Array[CarController]:
@@ -129,6 +141,14 @@ func get_car_index(car: CarController) -> int:
 
 func get_car_count() -> int:
 	return _cars.size()
+
+
+func get_neural_cars() -> Array[CarController]:
+	var result: Array[CarController] = []
+	for car in _cars:
+		if _neural_controllers_by_car.has(car):
+			result.append(car)
+	return result
 
 
 func get_position_for_car(car: CarController) -> int:
@@ -186,8 +206,25 @@ func get_leaderboard_entries() -> Array[Dictionary]:
 			"total_laps": total_laps,
 			"gap_seconds": telemetry.approximate_gap_to_leader,
 			"state": telemetry.get_state_label(),
+			"controller": car.get_controller_code(),
 		})
 	return entries
+
+
+func randomize_neural_genomes() -> void:
+	if neural_network_config == null:
+		return
+	_neural_seed_batch += 1
+	for car in get_neural_cars():
+		var controller := _neural_controllers_by_car.get(car) as NeuralCarController
+		if controller == null:
+			continue
+		var car_index := _cars.find(car)
+		controller.assign_genome(_create_neural_genome(car, car_index))
+		var progress := _progress_by_car.get(car) as RaceProgressTracker
+		if progress != null:
+			progress.respawn_at_last_checkpoint()
+	race_event.emit("NEURAL WEIGHTS RESET", &"NEURAL_RESET", null)
 
 
 func restart_race() -> void:
@@ -211,6 +248,7 @@ func _start_race() -> void:
 	_finish_order.clear()
 	_telemetry_by_car.clear()
 	_progress_by_car.clear()
+	_neural_controllers_by_car.clear()
 	_previous_order_index.clear()
 	_confirmed_pair_order.clear()
 	_pair_candidates.clear()
@@ -241,6 +279,7 @@ func _find_track() -> void:
 
 func _spawn_cars() -> void:
 	var grid_transforms := _track.get_start_grid_transforms(car_count)
+	var neural_start_index := maxi(car_count - neural_car_count, 1)
 
 	for index in range(car_count):
 		var car := CAR_SCENE.instantiate() as CarController
@@ -264,16 +303,51 @@ func _spawn_cars() -> void:
 
 		if index == 0:
 			manual_car = car
+			car.set_controller_kind(&"MANUAL")
+		elif index >= neural_start_index:
+			car.set_controller_kind(&"NEURAL")
+			var neural_controller := (
+				NEURAL_CONTROLLER_SCENE.instantiate() as NeuralCarController
+			)
+			neural_controller.genome = _create_neural_genome(car, index)
+			car.add_child(neural_controller)
+			_neural_controllers_by_car[car] = neural_controller
 		else:
-			var controller := (
+			car.set_controller_kind(&"TEMPORARY")
+			var temporary_controller := (
 				TEMPORARY_CONTROLLER_SCENE.instantiate() as TemporaryLineFollower
 			)
-			controller.speed_factor = SPEED_FACTORS[index % SPEED_FACTORS.size()]
-			car.add_child(controller)
+			temporary_controller.speed_factor = SPEED_FACTORS[index % SPEED_FACTORS.size()]
+			car.add_child(temporary_controller)
 
 		_cars.append(car)
 
 	cars_spawned.emit(get_cars())
+
+
+func _create_neural_genome(car: CarController, car_index: int) -> NeuralGenome:
+	var genome := NeuralGenome.new()
+	if neural_network_config == null:
+		push_error("RaceManager requires a NeuralNetworkConfig resource.")
+		return genome
+	var input_count := car.get_neural_inputs().size()
+	if not neural_network_config.is_valid_for(input_count):
+		push_error("Invalid neural network configuration.")
+		return genome
+	var genome_seed := (
+		neural_network_config.random_seed_base
+		+ _neural_seed_batch * neural_network_config.reroll_seed_stride
+		+ car_index
+	)
+	genome.configure_random(
+		input_count,
+		neural_network_config.hidden_neuron_count,
+		neural_network_config.output_neuron_count,
+		genome_seed,
+		neural_network_config.random_weight_scale,
+		"G%02d-%06d" % [car_index + 1, genome_seed]
+	)
+	return genome
 
 
 func _update_rankings(stability_delta: float) -> void:

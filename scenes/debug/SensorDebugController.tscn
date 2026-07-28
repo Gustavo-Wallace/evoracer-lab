@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/debug/sensor_debug_controller.gd" id="1_controller"]
 
@@ -18,6 +18,25 @@ content_margin_top = 7.0
 content_margin_right = 10.0
 content_margin_bottom = 7.0
 shadow_color = Color(0.04, 0.06, 0.03, 0.58)
+shadow_size = 3
+shadow_offset = Vector2(3, 3)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_neural_panel"]
+bg_color = Color(0.11, 0.09, 0.13, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.72, 0.48, 0.87, 0.95)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10.0
+content_margin_top = 7.0
+content_margin_right = 10.0
+content_margin_bottom = 7.0
+shadow_color = Color(0.04, 0.03, 0.05, 0.58)
 shadow_size = 3
 shadow_offset = Vector2(3, 3)
 
@@ -76,3 +95,40 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.48, 0.9, 0.43, 1)
 theme_override_font_sizes/font_size = 10
 text = "SURFACE: ASPHALT"
+
+[node name="NeuralPanel" type="PanelContainer" parent="Layout"]
+layout_mode = 0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -420.0
+offset_top = -272.0
+offset_right = -16.0
+offset_bottom = -174.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_neural_panel")
+
+[node name="Content" type="VBoxContainer" parent="Layout/NeuralPanel"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="TitleLabel" type="Label" parent="Layout/NeuralPanel/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84, 0.64, 0.96, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.03, 0.05, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 11
+text = "NEURAL  |  G12-047012  |  SEED 47012"
+
+[node name="Separator" type="HSeparator" parent="Layout/NeuralPanel/Content"]
+layout_mode = 2
+
+[node name="ValuesLabel" type="Label" parent="Layout/NeuralPanel/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.9, 0.97, 1)
+theme_override_colors/font_outline_color = Color(0.04, 0.03, 0.05, 1)
+theme_override_constants/outline_size = 1
+theme_override_font_sizes/font_size = 9
+text = "RAW  STEER +0.00   ACCEL +0.00   BRAKE +0.00\nAPPLIED  STEER +0.00   ACCEL 0.50   BRAKE 0.50\nTHROTTLE +0.00"
