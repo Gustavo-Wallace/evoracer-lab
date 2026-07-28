@@ -46,12 +46,19 @@ var rejected_by_order := 0
 var rejected_by_direction := 0
 var rejected_by_timing := 0
 var rejected_by_route := 0
+var trajectory := PackedVector2Array()
+var offroad_points := PackedVector2Array()
+var checkpoint_points := PackedVector2Array()
+var end_position := Vector2.ZERO
 
 var fitness := 0.0
 var fitness_components: Dictionary = {}
 var _last_barrier_contact := false
 var _last_rotation := 0.0
 var _maximum_speed_kmh := 1.0
+var _last_trajectory_position := Vector2.ZERO
+var _last_offroad_position := Vector2(INF, INF)
+var _last_recorded_checkpoint_count := 0
 
 
 func initialize(vehicle: CarController, controller: NeuralCarController) -> void:
@@ -75,6 +82,8 @@ func initialize(vehicle: CarController, controller: NeuralCarController) -> void
 		vehicle.maximum_forward_speed * vehicle.pixels_per_second_to_kmh,
 		1.0
 	)
+	_last_trajectory_position = vehicle.global_position
+	trajectory.append(vehicle.global_position)
 
 
 func sample(
@@ -105,6 +114,7 @@ func sample(
 		grass_streak += delta
 		if grass_streak > config.grass_penalty_grace:
 			grass_penalty_time += delta
+	_record_trajectory_sample(is_on_asphalt)
 
 	if evaluation_time >= config.initial_grace_time:
 		if absf(car.current_speed) < config.stationary_speed_threshold:
@@ -144,6 +154,9 @@ func sample(
 		rejected_by_direction = progress.rejected_by_direction
 		rejected_by_timing = progress.rejected_by_timing
 		rejected_by_route = progress.rejected_by_route
+		if valid_checkpoints > _last_recorded_checkpoint_count:
+			checkpoint_points.append(car.global_position)
+			_last_recorded_checkpoint_count = valid_checkpoints
 		if progress.time_since_last_progress > config.no_progress_penalty_grace:
 			no_progress_penalty_time += delta
 
@@ -186,6 +199,10 @@ func terminate(reason: StringName, evaluation_time: float) -> void:
 	end_reason = reason
 	end_time = evaluation_time
 	elapsed_time = evaluation_time
+	if is_instance_valid(car):
+		end_position = car.global_position
+		if trajectory.is_empty() or trajectory[-1] != end_position:
+			trajectory.append(end_position)
 
 
 func set_final_position(position: int) -> void:
@@ -318,6 +335,10 @@ func get_result_snapshot(fitness_rank: int) -> Dictionary:
 		"rejected_by_direction": rejected_by_direction,
 		"rejected_by_timing": rejected_by_timing,
 		"rejected_by_route": rejected_by_route,
+		"trajectory": trajectory.duplicate(),
+		"offroad_points": offroad_points.duplicate(),
+		"checkpoint_points": checkpoint_points.duplicate(),
+		"end_position": end_position,
 		"components": fitness_components.duplicate(true),
 	}
 
@@ -331,3 +352,25 @@ func _position_bonus(position: int, participant_count: int, weight: float) -> fl
 
 func get_grass_ratio() -> float:
 	return grass_time / sampled_time if sampled_time > 0.0 else 0.0
+
+
+func _record_trajectory_sample(is_on_asphalt: bool) -> void:
+	if not is_instance_valid(car):
+		return
+	var position := car.global_position
+	if (
+		trajectory.size() < 1200
+		and position.distance_to(_last_trajectory_position) >= 72.0
+	):
+		trajectory.append(position)
+		_last_trajectory_position = position
+	if (
+		not is_on_asphalt
+		and offroad_points.size() < 400
+		and (
+			not is_finite(_last_offroad_position.x)
+			or position.distance_to(_last_offroad_position) >= 110.0
+		)
+	):
+		offroad_points.append(position)
+		_last_offroad_position = position

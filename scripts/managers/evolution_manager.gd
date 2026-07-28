@@ -8,6 +8,8 @@ signal generation_finished(summary: Dictionary, results: Array[Dictionary])
 signal training_stopped
 signal pause_changed(is_paused: bool)
 signal results_pin_changed(is_pinned: bool)
+signal historical_champion_updated(metadata: Dictionary)
+signal persistence_warning(message: String)
 
 enum EvolutionState {
 	INACTIVE,
@@ -18,6 +20,9 @@ enum EvolutionState {
 @export var config: EvolutionConfig
 @export var evaluation_manager_path := NodePath("../NeuralEvaluationManager")
 @export var race_manager_path := NodePath("../RaceManager")
+@export var track_path := NodePath("../Track")
+@export_file("*.json") var champion_save_path := "user://evoracer-lab/champion_v1.json"
+@export_file("*.json") var history_save_path := "user://evoracer-lab/generation_history_v1.json"
 
 var state := EvolutionState.INACTIVE
 var current_generation := 0
@@ -28,14 +33,18 @@ var keep_results_open := false
 
 var _evaluation: NeuralEvaluationManager
 var _race_manager: RaceManager
+var _track: RaceTrackBase
 var _current_population: Array[NeuralGenome] = []
-var _generation_history: Array[Dictionary] = []
+var _history := EvolutionHistory.new()
 var _last_results: Array[Dictionary] = []
-var _best_historical_genome: NeuralGenome
+var _historical_champion: HistoricalChampion
 var _results_pause_remaining := 0.0
 var _status_accumulator := 0.0
 var _rng := RandomNumberGenerator.new()
 var _last_parent_audit_passed := true
+var _replay_pause_active := false
+var _paused_before_replay := false
+var _last_persistence_warning := ""
 
 
 func _ready() -> void:
@@ -44,8 +53,9 @@ func _ready() -> void:
 		evaluation_manager_path
 	) as NeuralEvaluationManager
 	_race_manager = get_node_or_null(race_manager_path) as RaceManager
-	if _evaluation == null or _race_manager == null:
-		push_error("EvolutionManager requires evaluation and race managers.")
+	_track = get_node_or_null(track_path) as RaceTrackBase
+	if _evaluation == null or _race_manager == null or _track == null:
+		push_error("EvolutionManager requires evaluation, race and track managers.")
 		return
 	if config == null or not config.is_valid():
 		push_error("EvolutionManager requires a valid EvolutionConfig.")
@@ -53,6 +63,7 @@ func _ready() -> void:
 	_evaluation.evaluation_started.connect(_on_evaluation_started)
 	_evaluation.evaluation_finished.connect(_on_evaluation_finished)
 	_evaluation.evaluation_cancelled.connect(_on_evaluation_cancelled)
+	_load_persistent_data()
 
 
 func _process(delta: float) -> void:
@@ -76,6 +87,8 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo():
 		return
+	if _replay_pause_active:
+		return
 	if event.is_action_pressed("start_neural_evaluation"):
 		start_training()
 		get_viewport().set_input_as_handled()
@@ -96,17 +109,21 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func start_training() -> void:
+	if _replay_pause_active:
+		return
 	if _evaluation == null or _race_manager == null or config == null:
 		return
 	_set_paused(false)
 	state = EvolutionState.EVALUATING
 	current_generation = 1
-	best_historical_fitness = -INF
+	best_historical_fitness = (
+		_historical_champion.fitness
+		if _historical_champion != null
+		else -INF
+	)
 	previous_generation_average = 0.0
 	_current_population.clear()
-	_generation_history.clear()
 	_last_results.clear()
-	_best_historical_genome = null
 	_results_pause_remaining = 0.0
 	_status_accumulator = 0.0
 	_last_parent_audit_passed = true
@@ -128,10 +145,14 @@ func stop_training() -> void:
 
 
 func toggle_pause() -> void:
+	if _replay_pause_active:
+		return
 	_set_paused(not is_training_paused)
 
 
 func advance_generation() -> void:
+	if _replay_pause_active:
+		return
 	if state != EvolutionState.RESULTS or _last_results.is_empty():
 		return
 	_set_paused(false)
@@ -153,7 +174,38 @@ func is_training_active() -> bool:
 
 
 func get_generation_history() -> Array[Dictionary]:
-	return _generation_history.duplicate(true)
+	return _history.get_entries()
+
+
+func get_recent_generation_history(count: int = 8) -> Array[Dictionary]:
+	return _history.get_recent(count)
+
+
+func has_historical_champion() -> bool:
+	return _historical_champion != null and _historical_champion.is_valid()
+
+
+func get_historical_champion_genome() -> NeuralGenome:
+	return _historical_champion.get_genome_copy() if has_historical_champion() else null
+
+
+func get_historical_champion_metadata() -> Dictionary:
+	return _historical_champion.get_metadata() if has_historical_champion() else {}
+
+
+func begin_replay_pause() -> void:
+	if _replay_pause_active:
+		return
+	_replay_pause_active = true
+	_paused_before_replay = is_training_paused
+	_set_paused(true)
+
+
+func end_replay_pause() -> void:
+	if not _replay_pause_active:
+		return
+	_replay_pause_active = false
+	_set_paused(_paused_before_replay)
 
 
 func get_last_results() -> Array[Dictionary]:
@@ -187,6 +239,7 @@ func get_status_snapshot() -> Dictionary:
 		"results_pause": maxf(_results_pause_remaining, 0.0),
 		"parent_audit_passed": _last_parent_audit_passed,
 		"master_seed": config.master_seed if config != null else 0,
+		"persistence_warning": _last_persistence_warning,
 	}
 
 
@@ -209,16 +262,16 @@ func _on_evaluation_finished(results: Array[Dictionary]) -> void:
 	var fitness_sum := 0.0
 	var worst_fitness := INF
 	var best_progress := 0.0
+	var asphalt_ratio_sum := 0.0
 	for result in _last_results:
 		fitness_sum += float(result["fitness"])
 		worst_fitness = minf(worst_fitness, float(result["fitness"]))
 		best_progress = maxf(best_progress, float(result["progress"]))
+		asphalt_ratio_sum += float(result.get("asphalt_ratio", 0.0))
 	previous_generation_average = fitness_sum / float(_last_results.size())
 	var best_fitness := float(_last_results[0]["fitness"])
 	var champion := _find_genome(String(_last_results[0]["genome_id"]))
-	if best_fitness > best_historical_fitness:
-		best_historical_fitness = best_fitness
-		_best_historical_genome = champion.copy_genome() if champion != null else null
+	_update_historical_champion(champion, _last_results[0])
 
 	var summary := {
 		"generation": current_generation,
@@ -227,11 +280,21 @@ func _on_evaluation_finished(results: Array[Dictionary]) -> void:
 		"worst_fitness": worst_fitness,
 		"best_progress": best_progress,
 		"champion_checkpoints": int(_last_results[0]["checkpoints"]),
+		"champion_laps": int(_last_results[0]["laps"]),
 		"champion_id": String(_last_results[0]["genome_id"]),
+		"checkpoint_reach_counts": _calculate_checkpoint_reach_counts(
+			_last_results
+		),
+		"average_asphalt_ratio": (
+			asphalt_ratio_sum / float(_last_results.size())
+		),
 		"diversity": _calculate_population_diversity(_current_population),
+		"evaluation_duration": _evaluation.elapsed_time,
 		"master_seed": config.master_seed,
+		"track_id": String(_track.track_id),
 	}
-	_generation_history.append(summary.duplicate(true))
+	_history.add_generation(summary)
+	_save_history()
 	state = EvolutionState.RESULTS
 	_results_pause_remaining = config.result_pause_duration
 	generation_finished.emit(summary, get_last_results())
@@ -373,6 +436,110 @@ func _calculate_population_diversity(
 			pair_total += sqrt(squared_difference / maxf(float(first.size()), 1.0))
 			pair_count += 1
 	return pair_total / float(pair_count) if pair_count > 0 else 0.0
+
+
+func _calculate_checkpoint_reach_counts(
+	results: Array[Dictionary]
+) -> Array[int]:
+	var checkpoint_count := maxi(_track.get_checkpoint_count() - 1, 0)
+	var counts: Array[int] = []
+	counts.resize(checkpoint_count)
+	counts.fill(0)
+	for result in results:
+		var reached := int(result.get("checkpoints", 0))
+		for checkpoint_index in range(checkpoint_count):
+			if reached >= checkpoint_index + 1:
+				counts[checkpoint_index] += 1
+	return counts
+
+
+func _update_historical_champion(
+	genome: NeuralGenome,
+	result: Dictionary
+) -> void:
+	if genome == null:
+		return
+	var candidate_fitness := float(result.get("fitness", -INF))
+	if (
+		_historical_champion != null
+		and candidate_fitness <= _historical_champion.fitness + 0.0001
+	):
+		return
+	var champion := HistoricalChampion.new()
+	champion.initialize(
+		genome,
+		result,
+		current_generation,
+		String(_track.track_id),
+		_evaluation.fitness_config.get_parameter_snapshot()
+	)
+	_historical_champion = champion
+	best_historical_fitness = champion.fitness
+	var save_error := EvolutionPersistence.save_champion(
+		champion_save_path,
+		_historical_champion
+	)
+	if save_error != OK:
+		_report_persistence_warning(
+			"Could not save historical champion (error %d)." % save_error
+		)
+	historical_champion_updated.emit(champion.get_metadata())
+
+
+func _save_history() -> void:
+	var save_error := EvolutionPersistence.save_history(
+		history_save_path,
+		String(_track.track_id),
+		_history.get_entries()
+	)
+	if save_error != OK:
+		_report_persistence_warning(
+			"Could not save generation history (error %d)." % save_error
+		)
+
+
+func _load_persistent_data() -> void:
+	var champion_result := EvolutionPersistence.load_champion(
+		champion_save_path,
+		String(_track.track_id),
+		_get_expected_architecture()
+	)
+	if bool(champion_result.get("ok", false)):
+		_historical_champion = champion_result["champion"] as HistoricalChampion
+		best_historical_fitness = _historical_champion.fitness
+	elif not bool(champion_result.get("missing", false)):
+		_report_persistence_warning(String(champion_result.get("error", "")))
+
+	var history_result := EvolutionPersistence.load_history(
+		history_save_path,
+		String(_track.track_id)
+	)
+	if bool(history_result.get("ok", false)):
+		var loaded_entries: Array[Dictionary] = []
+		for entry in history_result.get("entries", []):
+			if entry is Dictionary:
+				loaded_entries.append((entry as Dictionary).duplicate(true))
+		_history.replace_entries(loaded_entries)
+	elif not bool(history_result.get("missing", false)):
+		_report_persistence_warning(String(history_result.get("error", "")))
+
+
+func _get_expected_architecture() -> Dictionary:
+	var input_count := 0
+	var first_car := _race_manager.get_car(0)
+	if first_car != null:
+		input_count = first_car.get_neural_inputs().size()
+	return {
+		"inputs": input_count,
+		"hidden": _race_manager.neural_network_config.hidden_neuron_count,
+		"outputs": _race_manager.neural_network_config.output_neuron_count,
+	}
+
+
+func _report_persistence_warning(message: String) -> void:
+	_last_persistence_warning = message
+	push_warning(message)
+	persistence_warning.emit(message)
 
 
 func _find_genome(genome_id: String) -> NeuralGenome:

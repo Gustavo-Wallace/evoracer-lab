@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/managers/champion_replay_manager.gd" id="1_manager"]
+
+[node name="ChampionReplayManager" type="Node2D" groups=["champion_replay_manager"]]
+process_mode = 3
+script = ExtResource("1_manager")

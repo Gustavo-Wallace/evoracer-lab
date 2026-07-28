@@ -5,6 +5,7 @@ extends CanvasLayer
 @export var camera_path := NodePath("../RaceCamera")
 @export var evaluation_manager_path := NodePath("../NeuralEvaluationManager")
 @export var race_manager_path := NodePath("../RaceManager")
+@export var replay_manager_path := NodePath("../ChampionReplayManager")
 
 var _debug_enabled := false
 var _camera: RaceCamera
@@ -13,6 +14,7 @@ var _active_sensors: VehicleSensors
 var _neural_controller: NeuralCarController
 var _evaluation_manager: NeuralEvaluationManager
 var _race_manager: RaceManager
+var _replay_manager: ChampionReplayManager
 
 @onready var panel: PanelContainer = $Layout/SensorPanel
 @onready var title_label: Label = $Layout/SensorPanel/Content/TitleLabel
@@ -32,6 +34,9 @@ func _ready() -> void:
 		evaluation_manager_path
 	) as NeuralEvaluationManager
 	_race_manager = get_node_or_null(race_manager_path) as RaceManager
+	_replay_manager = get_node_or_null(
+		replay_manager_path
+	) as ChampionReplayManager
 	panel.visible = false
 	neural_panel.visible = false
 	fitness_panel.visible = false
@@ -59,6 +64,8 @@ func _process(_delta: float) -> void:
 		if _evaluation_manager != null and _target != null
 		else {}
 	)
+	if fitness_breakdown.is_empty() and _replay_manager != null:
+		fitness_breakdown = _replay_manager.get_fitness_breakdown(_target)
 	fitness_panel.visible = (
 		_debug_enabled
 		and _neural_controller != null

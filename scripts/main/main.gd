@@ -5,6 +5,8 @@ extends Node2D
 @onready var race_camera: RaceCamera = $RaceCamera
 @onready var hud: RaceHUD = $HUD
 @onready var neural_evaluation: NeuralEvaluationManager = $NeuralEvaluationManager
+@onready var evolution: EvolutionManager = $EvolutionManager
+@onready var champion_replay: ChampionReplayManager = $ChampionReplayManager
 
 
 func _ready() -> void:
@@ -15,6 +17,10 @@ func _ready() -> void:
 	neural_evaluation.evaluation_started.connect(_on_evaluation_started)
 	neural_evaluation.evaluation_finished.connect(_on_evaluation_finished)
 	neural_evaluation.evaluation_cancelled.connect(_on_evaluation_cancelled)
+	champion_replay.replay_started.connect(_on_replay_started)
+	champion_replay.replay_restarted.connect(_on_replay_restarted)
+	champion_replay.replay_finished.connect(_on_replay_finished)
+	champion_replay.replay_unavailable.connect(_on_replay_unavailable)
 	_update_leaderboard()
 
 
@@ -39,7 +45,12 @@ func _process(_delta: float) -> void:
 		progress.get_total_progress(),
 		race_manager.get_total_laps()
 	)
-	var telemetry := race_manager.get_telemetry(target)
+	var telemetry := (
+		champion_replay.get_replay_telemetry()
+		if champion_replay.is_replay_active()
+		and target == champion_replay.get_replay_car()
+		else race_manager.get_telemetry(target)
+	)
 	var has_finished := (
 		telemetry != null
 		and telemetry.state == CarRaceTelemetry.RaceState.FINISHED
@@ -50,10 +61,14 @@ func _process(_delta: float) -> void:
 		has_finished
 	)
 	hud.set_spectator_info(
-		race_camera.get_mode_label(),
+		(
+			"REPLAY"
+			if champion_replay.is_replay_active()
+			else race_camera.get_mode_label()
+		),
 		target.vehicle_id,
-		race_manager.get_position_for_car(target),
-		race_manager.get_car_count(),
+		1 if champion_replay.is_replay_active() else race_manager.get_position_for_car(target),
+		1 if champion_replay.is_replay_active() else race_manager.get_car_count(),
 		target.get_controller_code()
 	)
 
@@ -84,6 +99,24 @@ func _on_evaluation_finished(_results: Array[Dictionary]) -> void:
 
 func _on_evaluation_cancelled() -> void:
 	hud.set_mode_label("MANUAL TEST MODE")
+
+
+func _on_replay_started(_car: CarController) -> void:
+	hud.set_mode_label("HISTORICAL CHAMPION REPLAY")
+
+
+func _on_replay_restarted(_car: CarController) -> void:
+	hud.set_mode_label("CHAMPION REPLAY RESTARTED")
+
+
+func _on_replay_finished() -> void:
+	hud.set_mode_label(
+		"NEURAL EVOLUTION MODE" if evolution.is_training_active() else "MANUAL TEST MODE"
+	)
+
+
+func _on_replay_unavailable(message: String) -> void:
+	hud.show_race_event(message, &"RACE_END")
 
 
 func _update_leaderboard() -> void:

@@ -567,7 +567,13 @@ func _register_existing_cars() -> void:
 
 func _on_tree_node_added(node: Node) -> void:
 	if node.is_in_group("race_cars"):
-		call_deferred("register_car", node)
+		call_deferred("_register_car_by_instance_id", node.get_instance_id())
+
+
+func _register_car_by_instance_id(instance_id: int) -> void:
+	var candidate := instance_from_id(instance_id)
+	if candidate is Node2D and is_instance_valid(candidate):
+		register_car(candidate as Node2D)
 
 
 func _create_start_grid(points: PackedVector2Array) -> void:

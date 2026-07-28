@@ -56,3 +56,22 @@ func is_valid() -> bool:
 		and sample_interval > 0.0
 		and lap_tier_weight > non_lap_component_limit * 2.0
 	)
+
+
+func get_parameter_snapshot() -> Dictionary:
+	return {
+		"maximum_duration": maximum_duration,
+		"no_progress_time_limit": no_progress_time_limit,
+		"stationary_time_limit": stationary_time_limit,
+		"wrong_direction_time_limit": wrong_direction_time_limit,
+		"lap_tier_weight": lap_tier_weight,
+		"non_lap_component_limit": non_lap_component_limit,
+		"valid_progress_weight": valid_progress_weight,
+		"valid_checkpoint_weight": valid_checkpoint_weight,
+		"finish_line_crossing_weight": finish_line_crossing_weight,
+		"useful_speed_weight": useful_speed_weight,
+		"asphalt_ratio_weight": asphalt_ratio_weight,
+		"grass_second_penalty": grass_second_penalty,
+		"barrier_contact_penalty": barrier_contact_penalty,
+		"no_progress_second_penalty": no_progress_second_penalty,
+	}
